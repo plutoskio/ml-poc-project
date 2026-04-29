@@ -1,5 +1,7 @@
 # Project Log
 
+This file is the concise chronological process log. For the polished A-to-Z explanation of the full methodology, decisions, leakage fixes, strategy setup, and final interpretation, see `PROJECT_APPROACH.md`.
+
 ## 2026-04-29
 
 ### Current Direction
