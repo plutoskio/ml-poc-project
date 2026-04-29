@@ -1,0 +1,4 @@
+model_key,model_name,model_path,accuracy,balanced_accuracy,precision,recall,f1
+log_reg,Logistic Regression,/Users/milo/Desktop/POC/ml-poc-project/models/log_reg.joblib,0.7358630952380952,0.7353178339222224,0.7420382165605095,0.7071320182094082,0.7241647241647242
+random_forest,Random Forest,/Users/milo/Desktop/POC/ml-poc-project/models/random_forest.joblib,0.6763392857142857,0.6753685632954155,0.6866666666666666,0.6251896813353566,0.6544876886417792
+hist_gradient_boosting,Hist Gradient Boosting,/Users/milo/Desktop/POC/ml-poc-project/models/hist_gradient_boosting.joblib,0.6897321428571429,0.6908975111593545,0.6617647058823529,0.7511380880121397,0.7036247334754797

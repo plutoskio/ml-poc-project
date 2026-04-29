@@ -30,12 +30,20 @@ MODEL_METRICS_FILE = RESULTS_DIR / "model_metrics.csv"
 STREAMLIT_HOST = "localhost"
 STREAMLIT_PORT = 8501
 
-# Students must replace this example with their trained models.
-# Each entry must point to a serialized model saved as `.joblib`, `.pkl`, or `.pickle`.
 MODELS = {
-    "model_a": {
-        "name": "Model A",
-        "description": "A simple baseline model.",
-        "path": MODELS_DIR / "model_a.pkl",
+    "log_reg": {
+        "name": "Logistic Regression",
+        "description": "Linear supervised baseline with standardized features.",
+        "path": MODELS_DIR / "log_reg.joblib",
+    },
+    "random_forest": {
+        "name": "Random Forest",
+        "description": "Tree ensemble benchmark for nonlinear market interactions.",
+        "path": MODELS_DIR / "random_forest.joblib",
+    },
+    "hist_gradient_boosting": {
+        "name": "Hist Gradient Boosting",
+        "description": "Gradient boosting classifier for tabular market features.",
+        "path": MODELS_DIR / "hist_gradient_boosting.joblib",
     },
 }

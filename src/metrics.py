@@ -1,12 +1,16 @@
-"""Student-owned metrics contract.
-
-Students must implement ``compute_metrics`` to return the evaluation metrics
-that matter for their project.
-"""
+"""Classification metrics for next-day index direction models."""
 
 from __future__ import annotations
 
 from typing import Any
+
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    f1_score,
+    precision_score,
+    recall_score,
+)
 
 
 def compute_metrics(y_true: Any, y_pred: Any) -> dict[str, float]:
@@ -23,6 +27,10 @@ def compute_metrics(y_true: Any, y_pred: Any) -> dict[str, float]:
       ``results/model_metrics.csv``.
     """
 
-    raise NotImplementedError(
-        "Implement metrics.compute_metrics() before running scripts/main.py."
-    )
+    return {
+        "accuracy": accuracy_score(y_true, y_pred),
+        "balanced_accuracy": balanced_accuracy_score(y_true, y_pred),
+        "precision": precision_score(y_true, y_pred, zero_division=0),
+        "recall": recall_score(y_true, y_pred, zero_division=0),
+        "f1": f1_score(y_true, y_pred, zero_division=0),
+    }
