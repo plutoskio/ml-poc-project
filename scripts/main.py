@@ -1,3 +1,5 @@
+"""Evaluate registered models and launch the Streamlit application."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -90,7 +92,8 @@ def _evaluate_models(X_test: Any, y_test: Any) -> list[dict[str, object]]:
 
         if not hasattr(model, "predict"):
             raise TypeError(
-                f"Loaded object for model `{model_key}` does not expose a `predict` method."
+                f"Loaded object for model `{model_key}` does not expose "
+                "a `predict` method."
             )
 
         y_pred = model.predict(X_test)

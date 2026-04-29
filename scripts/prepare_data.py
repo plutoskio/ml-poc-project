@@ -1,14 +1,8 @@
+"""Prepare and save processed train/validation/test datasets."""
+
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
-sys.path.insert(0, str(SRC_DIR))
-
-from data import feature_columns, load_modeling_dataset, save_processed_datasets
+from src.data import feature_columns, load_modeling_dataset, save_processed_datasets
 
 
 def main() -> None:

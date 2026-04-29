@@ -6,6 +6,8 @@ import pickle
 from pathlib import Path
 from typing import Any
 
+import joblib
+
 
 def load_model(model_path: Path) -> Any:
     """Load a serialized model from disk.
@@ -19,14 +21,6 @@ def load_model(model_path: Path) -> Any:
     suffix = model_path.suffix.lower()
 
     if suffix == ".joblib":
-        try:
-            import joblib
-        except ImportError as exc:
-            raise ImportError(
-                "Loading `.joblib` files requires the `joblib` package. "
-                "Add it to requirements.txt if needed."
-            ) from exc
-
         return joblib.load(model_path)
 
     if suffix in {".pkl", ".pickle"}:

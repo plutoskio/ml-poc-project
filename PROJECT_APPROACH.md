@@ -55,9 +55,12 @@ So `mom` encodes the next day's movement. That is target leakage.
 
 The `ROC_5`, `ROC_10`, `ROC_15`, and `ROC_20` columns also appear to be forward-looking. For example, `ROC_5` matches the inverse five-day forward return.
 
+A senior review also found that the raw `EMA_10`, `EMA_20`, `EMA_50`, and `EMA_200` columns are future-looking. They satisfy a backward EMA recurrence using `EMA[t + 1]`, so they cannot be used as features.
+
 These columns will be excluded:
 
 ```text
+EMA_10, EMA_20, EMA_50, EMA_200,
 mom, mom1, mom2, mom3, ROC_5, ROC_10, ROC_15, ROC_20
 ```
 
@@ -169,13 +172,34 @@ return_20d = Price.pct_change(20)
 volatility_5d = return_1d.rolling(5).std()
 volatility_10d = return_1d.rolling(10).std()
 volatility_20d = return_1d.rolling(20).std()
-price_vs_ema_10 = Price / EMA_10 - 1
-price_vs_ema_20 = Price / EMA_20 - 1
-price_vs_ema_50 = Price / EMA_50 - 1
-price_vs_ema_200 = Price / EMA_200 - 1
+trailing_ema_10 = Price.ewm(span=10, adjust=False).mean()
+trailing_ema_20 = Price.ewm(span=20, adjust=False).mean()
+trailing_ema_50 = Price.ewm(span=50, adjust=False).mean()
+trailing_ema_200 = Price.ewm(span=200, adjust=False).mean()
+price_vs_trailing_ema_10 = Price / trailing_ema_10 - 1
+price_vs_trailing_ema_20 = Price / trailing_ema_20 - 1
+price_vs_trailing_ema_50 = Price / trailing_ema_50 - 1
+price_vs_trailing_ema_200 = Price / trailing_ema_200 - 1
 ```
 
 These features are valid because they use information up to the current row only.
+
+To avoid same-close execution bias, all feature columns are shifted by one trading day within each index before modeling. This means the model uses information available through `t - 1` to decide whether to be long from `t` to `t + 1`.
+
+Additional implemented features:
+
+```python
+volatility_ratio_5d_20d = volatility_5d / volatility_20d
+return_5d_to_volatility_20d = return_5d / volatility_20d
+return_20d_to_volatility_20d = return_20d / volatility_20d
+drawdown_20d = Price / rolling_20d_high - 1
+drawdown_60d = Price / rolling_60d_high - 1
+price_vs_20d_low = Price / rolling_20d_low - 1
+trailing_ema_10_vs_50 = trailing_ema_10 / trailing_ema_50 - 1
+trailing_ema_20_vs_200 = trailing_ema_20 / trailing_ema_200 - 1
+```
+
+These features capture volatility regime, risk-adjusted momentum, trend state, and drawdown/recovery state without using future information.
 
 ### Existing Market Features
 
@@ -197,6 +221,10 @@ The following columns will not be used:
 Date
 Name
 Price as a raw level
+EMA_10
+EMA_20
+EMA_50
+EMA_200
 mom
 mom1
 mom2
@@ -209,7 +237,7 @@ ROC_20
 
 Raw `Price` will not be used directly because it is non-stationary. Instead, it will be converted into returns, rolling volatility, and relative-to-moving-average features.
 
-## 8. Modeling Plan
+## 8. Modeling Plan And Current Results
 
 All models will be supervised.
 
@@ -238,7 +266,7 @@ Expected role:
 - Tree-based benchmark.
 - Useful for feature importance and nonlinear signal discovery.
 
-### Model 3: Gradient Boosting / XGBoost Classifier
+### Model 3: Hist Gradient Boosting Classifier
 
 Purpose:
 
@@ -250,6 +278,32 @@ Expected role:
 
 - Main performance candidate.
 - Likely best model for predictive and trading metrics.
+
+### Current Classification Results
+
+The implemented models are:
+
+- Logistic Regression
+- Random Forest
+- Hist Gradient Boosting
+
+Saved models:
+
+```text
+models/log_reg.joblib
+models/random_forest.joblib
+models/hist_gradient_boosting.joblib
+```
+
+Current registered test metrics from `results/model_metrics.csv`:
+
+| Model | Accuracy | Balanced accuracy | Precision | Recall | F1 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Logistic Regression | 0.4978 | 0.5010 | 0.4911 | 0.6692 | 0.5665 |
+| Random Forest | 0.5186 | 0.5218 | 0.5067 | 0.6859 | 0.5828 |
+| Hist Gradient Boosting | 0.5089 | 0.5145 | 0.4995 | 0.8027 | 0.6158 |
+
+The corrected classifiers are close to chance. Random Forest has the best registered test accuracy, but none of the models is strong enough to claim a robust predictive edge from classification metrics alone.
 
 ### Optional Model 4: Calibrated Classifier
 
@@ -299,37 +353,27 @@ If needed, we can subtract simple transaction costs:
 net_strategy_return = signal * next_return - cost_per_trade * abs(signal[t] - signal[t - 1])
 ```
 
-For the first version, use no transaction costs and then add a sensitivity check.
+The implemented first version includes a 1 basis point cost per signal change.
+
+The strategy is evaluated as an equal-weight daily portfolio across the three index signals. This avoids overstating annualization from treating the three index rows as separate trading days.
 
 ## 10. Evaluation Metrics
 
 ### Classification Metrics
 
-The metrics function in `src/metrics.py` should compute:
+The metrics function in `src/metrics.py` computes:
 
 ```text
 accuracy
+balanced_accuracy
 precision
 recall
 f1
 roc_auc
 ```
 
-ROC-AUC requires probabilities, not just class labels. The current template only passes `y_pred` into `compute_metrics`, so we have two options:
-
-1. Keep `src/metrics.py` simple and compute accuracy, precision, recall, and F1 only.
-2. Extend the orchestration later to also pass predicted probabilities and support ROC-AUC.
-
-For the first clean implementation, use:
-
-```text
-accuracy
-precision
-recall
-f1
-```
-
-Then add ROC-AUC in a later iteration if we adjust the template.
+ROC-AUC is included when predicted probabilities are available. The template-compatible
+`compute_metrics()` wrapper still returns the core class-label metrics.
 
 ### Strategy Metrics
 
@@ -349,7 +393,7 @@ turnover
 
 The Streamlit app should show classification metrics and trading metrics side by side.
 
-## 11. Expected Results
+## 11. Current Results And Interpretation
 
 We should set realistic expectations.
 
@@ -373,11 +417,49 @@ The final test period, 2022-2023, is especially useful because buy-and-hold was 
 
 This gives the model a meaningful challenge: can it reduce exposure during a more difficult market regime?
 
-## 12. Implementation Order
+### Current Backtest Results
 
-### Step 1: Data Loading
+Backtest outputs:
 
-Update `src/data.py` to:
+```text
+results/strategy_metrics.csv
+results/equity_curves.csv
+results/strategy_returns.csv
+```
+
+The model strategy:
+
+1. Trains a temporary model on 2010-2019.
+2. Selects the long/cash probability threshold on 2020-2021 validation data.
+3. Applies that threshold to the final saved model on the 2022-2023 test period.
+4. Charges 1 basis point per signal change.
+
+The original high-return result was invalidated because it depended on the dataset's future-looking `EMA_*` columns. After removing those columns, recomputing trailing EMAs, and lagging all features by one day, the corrected test-period results are:
+
+| Strategy | Threshold | Total return | Annualized return | Sharpe | Max drawdown | Exposure |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Buy and hold | n/a | -0.1014 | -0.0411 | -0.2102 | -0.2549 | 1.0000 |
+| Previous-day direction | n/a | -0.2518 | -0.1552 | -1.2371 | -0.2697 | 0.4896 |
+| Price above trailing EMA 20 | n/a | -0.1097 | -0.0596 | -0.5558 | -0.1692 | 0.4926 |
+| Positive 20d momentum | n/a | -0.1226 | -0.0670 | -0.5858 | -0.1874 | 0.4807 |
+| Logistic Regression long/cash | 0.60 | 0.0966 | 0.0572 | 0.5531 | -0.0902 | 0.2552 |
+| Random Forest long/cash | 0.60 | -0.0006 | 0.0020 | 0.0294 | -0.0645 | 0.0915 |
+| Hist Gradient Boosting long/cash | 0.60 | -0.0640 | -0.0293 | -0.2326 | -0.1486 | 0.3854 |
+
+These corrected results are much more realistic. Logistic Regression improves over buy-and-hold during a difficult test period, but the edge is modest and needs further validation before being presented as robust.
+
+Important next stress tests:
+
+- Per-index strategy metrics.
+- Higher transaction cost sensitivity.
+- Walk-forward validation instead of a single train/validation/test split.
+- Probability calibration check.
+
+## 12. Implementation Status
+
+### Step 1: Data Loading - Complete
+
+Implemented in `src/data.py`:
 
 1. Load the three CSV files.
 2. Add an `index_name` column from the file name or `Name`.
@@ -388,33 +470,49 @@ Update `src/data.py` to:
 7. Combine the three files into one modeling dataset.
 8. Use a chronological split.
 
-The returned values should follow the template contract:
+The returned values follow the template contract:
 
 ```python
 return X_train, X_test, y_train, y_test
 ```
 
-For the first implementation, validation can be handled inside the training script or by using the 2020-2021 period before final testing.
+Processed files generated by `scripts/prepare_data.py`:
 
-### Step 2: Training Script
+```text
+data/processed_modeling_dataset.csv
+data/processed_train.csv
+data/processed_validation.csv
+data/processed_test.csv
+```
 
-Add a training script, for example:
+Processed dataset summary:
+
+| File | Rows | Columns |
+| --- | ---: | ---: |
+| `processed_modeling_dataset.csv` | 10,227 | 100 |
+| `processed_train.csv` | 7,368 | 100 |
+| `processed_validation.csv` | 1,515 | 100 |
+| `processed_test.csv` | 1,344 | 100 |
+
+### Step 2: Training Script - Complete
+
+Implemented:
 
 ```text
 scripts/train_models.py
 ```
 
-This script should:
+This script:
 
 1. Load the modeling dataset.
 2. Fit preprocessing pipelines.
-3. Train Logistic Regression, Random Forest, and XGBoost or Gradient Boosting.
+3. Train Logistic Regression, Random Forest, and Hist Gradient Boosting.
 4. Save models into `models/`.
-5. Save any feature list or preprocessing metadata needed by the app.
+5. Save validation/test classification results.
 
-### Step 3: Model Registry
+### Step 3: Model Registry - Complete
 
-Update `src/config.py`:
+Implemented in `src/config.py`:
 
 ```python
 MODELS = {
@@ -428,45 +526,46 @@ MODELS = {
         "description": "Nonlinear tree ensemble benchmark.",
         "path": MODELS_DIR / "random_forest.joblib",
     },
-    "xgboost": {
-        "name": "XGBoost",
+    "hist_gradient_boosting": {
+        "name": "Hist Gradient Boosting",
         "description": "Gradient boosted trees for tabular market features.",
-        "path": MODELS_DIR / "xgboost.joblib",
+        "path": MODELS_DIR / "hist_gradient_boosting.joblib",
     },
 }
 ```
 
-If XGBoost is too heavy or unavailable, use scikit-learn's `HistGradientBoostingClassifier`.
+### Step 4: Metrics - Complete
 
-### Step 4: Metrics
-
-Update `src/metrics.py` to compute classification metrics:
+Implemented in `src/metrics.py`:
 
 ```text
 accuracy
+balanced_accuracy
 precision
 recall
 f1
+optional roc_auc
 ```
 
 Use stable metric names so the CSV output remains consistent across models.
 
-### Step 5: Backtest Evaluation
+### Step 5: Backtest Evaluation - Complete
 
-Add a utility module, for example:
+Implemented:
 
 ```text
 src/backtest.py
+scripts/run_backtest.py
 ```
 
-This module should:
+These modules:
 
 1. Convert model probabilities into signals.
 2. Calculate strategy returns.
 3. Compare against buy-and-hold and simple baselines.
-4. Save strategy outputs to `results/strategy_metrics.csv`.
+4. Save strategy outputs to `results/`.
 
-### Step 6: Streamlit App
+### Step 6: Streamlit App - Remaining
 
 Customize `src/app.py` to show:
 
@@ -486,39 +585,94 @@ Customize `src/app.py` to show:
 
 The app should focus on the actual quant workflow, not a generic ML dashboard.
 
+### Step 7: Tests And Tooling - Complete
+
+Implemented:
+
+```text
+pyproject.toml
+setup.cfg
+requirements-dev.txt
+tests/test_data_pipeline.py
+tests/test_metrics.py
+tests/test_backtest.py
+```
+
+The tests cover the highest-risk parts of the project:
+
+1. Leakage columns and raw future-looking EMA columns are excluded from features.
+2. `next_return` and `target` match the next trading day's price move by index.
+3. Price-derived features are lagged one trading day before modeling.
+4. Shared classification metrics behave consistently.
+5. Backtest signal, transaction cost, portfolio aggregation, and threshold logic work.
+
+Quality checks currently pass:
+
+```text
+python -m pytest
+python -m compileall src scripts tests
+python -m black --check src scripts tests
+python -m flake8 src scripts tests
+python -m pylint src scripts tests
+```
+
 ## 13. Repo Deliverables
 
-The final project should produce:
+The project currently produces:
 
 ```text
 data/
   combined_dataframe_DJI.csv
   combined_dataframe_IXIC.csv
   combined_dataframe_NYSE.csv
+  processed_modeling_dataset.csv
+  processed_train.csv
+  processed_validation.csv
+  processed_test.csv
 
 models/
   log_reg.joblib
   random_forest.joblib
-  xgboost.joblib
+  hist_gradient_boosting.joblib
 
 results/
   model_metrics.csv
   strategy_metrics.csv
   equity_curves.csv
+  strategy_returns.csv
+  training_classification_report.csv
 
 plots/
-  optional saved charts
+  test_equity_curves.png
+  test_drawdowns.png
+  test_strategy_metric_bars.png
+  test_model_metric_bars.png
+  test_return_distribution.png
+  test_model_exposure.png
 
 src/
   data.py
   metrics.py
+  modeling.py
   backtest.py
   app.py
   config.py
 
 scripts/
+  prepare_data.py
   train_models.py
+  run_backtest.py
+  generate_plots.py
   main.py
+
+tests/
+  test_data_pipeline.py
+  test_metrics.py
+  test_backtest.py
+
+pyproject.toml
+setup.cfg
+requirements-dev.txt
 ```
 
 ## 14. Success Criteria
@@ -534,4 +688,3 @@ The project will be considered successful if it satisfies these conditions:
 7. Provides a Streamlit app that explains the dataset, model, results, and trading interpretation clearly.
 
 The highest-quality version would show that a model may not predict every day well, but can still improve risk-adjusted exposure by trading only when the predicted probability is strong enough.
-

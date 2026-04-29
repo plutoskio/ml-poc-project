@@ -11,7 +11,7 @@ RESULTS_DIR = PROJECT_ROOT / "results"
 SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 TESTS_DIR = PROJECT_ROOT / "tests"
 
-for dir in [
+for directory in [
     DATA_DIR,
     LOGS_DIR,
     MODELS_DIR,
@@ -21,7 +21,7 @@ for dir in [
     SCRIPTS_DIR,
     TESTS_DIR,
 ]:
-    dir.mkdir(exist_ok=True)
+    directory.mkdir(exist_ok=True)
 
 ENV_FILE = PROJECT_ROOT / ".env"
 APP_ENTRYPOINT = PROJECT_ROOT / "src" / "app.py"

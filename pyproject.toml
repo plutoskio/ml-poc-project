@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ml-poc-project"
+version = "0.1.0"
+description = "Supervised quant-finance proof of concept for index direction prediction."
+requires-python = ">=3.11"
+dependencies = [
+    "folium",
+    "holidays",
+    "imbalanced-learn",
+    "joblib",
+    "jupyter",
+    "loguru",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "plotly",
+    "python-dotenv",
+    "pmdarima",
+    "scikit-learn",
+    "scipy",
+    "seaborn",
+    "statsmodels",
+    "streamlit",
+    "xgboost",
+]
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+
+[tool.pylint.main]
+disable = [
+    "missing-module-docstring",
+    "missing-function-docstring",
+    "invalid-name",
+    "too-many-locals",
+    "too-many-statements",
+    "wrong-import-position",
+]
+
+[tool.pylint.format]
+max-line-length = 88

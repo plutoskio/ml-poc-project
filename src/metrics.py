@@ -10,10 +10,15 @@ from sklearn.metrics import (
     f1_score,
     precision_score,
     recall_score,
+    roc_auc_score,
 )
 
 
-def compute_metrics(y_true: Any, y_pred: Any) -> dict[str, float]:
+def compute_classification_metrics(
+    y_true: Any,
+    y_pred: Any,
+    y_proba: Any | None = None,
+) -> dict[str, float]:
     """Return the metrics used to compare model performance.
 
     Expected return value:
@@ -27,10 +32,20 @@ def compute_metrics(y_true: Any, y_pred: Any) -> dict[str, float]:
       ``results/model_metrics.csv``.
     """
 
-    return {
+    metrics = {
         "accuracy": accuracy_score(y_true, y_pred),
         "balanced_accuracy": balanced_accuracy_score(y_true, y_pred),
         "precision": precision_score(y_true, y_pred, zero_division=0),
         "recall": recall_score(y_true, y_pred, zero_division=0),
         "f1": f1_score(y_true, y_pred, zero_division=0),
     }
+    if y_proba is not None:
+        metrics["roc_auc"] = roc_auc_score(y_true, y_proba)
+
+    return metrics
+
+
+def compute_metrics(y_true: Any, y_pred: Any) -> dict[str, float]:
+    """Return template-compatible hard-label classification metrics."""
+
+    return compute_classification_metrics(y_true, y_pred)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from config import MODEL_METRICS_FILE
+from src.config import MODEL_METRICS_FILE
 
 
 def build_app() -> None:
@@ -25,14 +25,12 @@ def build_app() -> None:
     )
 
     st.subheader("Expected student customizations")
-    st.markdown(
-        """
+    st.markdown("""
         - Describe the business objective and dataset.
         - Show relevant plots and key findings.
         - Explain the selected models and their trade-offs.
         - Add widgets or predictions if your project needs an interactive demo.
-        """
-    )
+        """)
 
     st.subheader("Latest evaluation results")
     if MODEL_METRICS_FILE.exists():

@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 import pandas as pd
-
 
 TRADING_DAYS_PER_YEAR = 252
 
@@ -143,9 +140,8 @@ def choose_threshold(
         if metrics["exposure"] < min_exposure:
             continue
 
-        if best_metrics is None or metrics["sharpe_ratio"] > best_metrics[
-            "sharpe_ratio"
-        ]:
+        best_sharpe = best_metrics["sharpe_ratio"] if best_metrics is not None else None
+        if best_sharpe is None or metrics["sharpe_ratio"] > best_sharpe:
             best_threshold = threshold
             best_metrics = metrics
 
@@ -174,4 +170,3 @@ def add_strategy_identity(
     if split is not None:
         frame["split"] = split
     return frame
-

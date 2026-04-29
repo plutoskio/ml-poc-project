@@ -1,22 +1,11 @@
+"""Run validation-threshold selection and test-period backtests."""
+
 from __future__ import annotations
-
-import os
-import sys
-from pathlib import Path
-
-os.environ.setdefault("LOKY_MAX_CPU_COUNT", "4")
 
 import joblib
 import pandas as pd
 
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
-SCRIPTS_DIR = PROJECT_ROOT / "scripts"
-sys.path.insert(0, str(SRC_DIR))
-sys.path.insert(0, str(SCRIPTS_DIR))
-
-from backtest import (
+from src.backtest import (
     add_strategy_identity,
     choose_threshold,
     make_long_cash_strategy_frame,
@@ -24,27 +13,12 @@ from backtest import (
     portfolio_daily_returns,
     strategy_metrics,
 )
-from config import MODELS, RESULTS_DIR
-from data import feature_columns, load_modeling_dataset
-from train_models import _models
-
+from src.config import MODELS, RESULTS_DIR
+from src.data import feature_columns, load_modeling_dataset
+from src.modeling import build_models, predict_positive_probability
 
 THRESHOLDS = [0.50, 0.52, 0.55, 0.57, 0.60]
 COST_PER_TRADE = 0.0001
-
-
-def _positive_probability(model: object, X: pd.DataFrame) -> pd.Series:
-    if hasattr(model, "predict_proba"):
-        return pd.Series(model.predict_proba(X)[:, 1], index=X.index)
-
-    if hasattr(model, "decision_function"):
-        scores = pd.Series(model.decision_function(X), index=X.index)
-        denominator = scores.max() - scores.min()
-        if denominator == 0:
-            return pd.Series(0.5, index=X.index)
-        return (scores - scores.min()) / denominator
-
-    raise TypeError(f"Model {model} does not expose probabilities or scores.")
 
 
 def _prediction_frame(
@@ -54,7 +28,7 @@ def _prediction_frame(
     split: str,
 ) -> pd.DataFrame:
     split_df = dataset.loc[dataset["split"] == split].copy()
-    p_up = _positive_probability(model, split_df[columns])
+    p_up = predict_positive_probability(model, split_df[columns])
     return pd.DataFrame(
         {
             "Date": split_df["Date"],
@@ -105,11 +79,11 @@ def _baseline_strategy_frames(
         add_strategy_identity(
             make_rule_strategy_frame(
                 split_df,
-                signal=(split_df["price_vs_ema_20"] > 0).astype(int),
-                strategy_key="price_above_ema_20",
+                signal=(split_df["price_vs_trailing_ema_20"] > 0).astype(int),
+                strategy_key="price_above_trailing_ema_20",
                 cost_per_trade=COST_PER_TRADE,
             ),
-            strategy_key="price_above_ema_20",
+            strategy_key="price_above_trailing_ema_20",
             split=split,
         ),
         add_strategy_identity(
@@ -126,6 +100,8 @@ def _baseline_strategy_frames(
 
 
 def main() -> None:
+    """Run long/cash backtests and write strategy result artifacts."""
+
     dataset = load_modeling_dataset()
     columns = feature_columns(dataset)
 
@@ -160,7 +136,7 @@ def main() -> None:
             strategy_frames.append(frame)
 
     for model_key, model_config in MODELS.items():
-        train_only_model = _models()[model_key]
+        train_only_model = build_models()[model_key]
         train_only_model.fit(X_train, y_train)
         validation_predictions = _prediction_frame(
             dataset,
@@ -186,40 +162,39 @@ def main() -> None:
         )
 
         final_model = joblib.load(model_config["path"])
-        for split in ["validation", "test"]:
-            predictions = _prediction_frame(dataset, final_model, columns, split=split)
-            strategy_frame = make_long_cash_strategy_frame(
-                predictions,
-                threshold=threshold,
-                cost_per_trade=COST_PER_TRADE,
-            )
-            strategy_key = f"{model_key}_long_cash"
-            strategy_frame = add_strategy_identity(
-                strategy_frame,
-                strategy_key=strategy_key,
-                model_key=model_key,
-                split=split,
-            )
+        predictions = _prediction_frame(dataset, final_model, columns, split="test")
+        strategy_frame = make_long_cash_strategy_frame(
+            predictions,
+            threshold=threshold,
+            cost_per_trade=COST_PER_TRADE,
+        )
+        strategy_key = f"{model_key}_long_cash"
+        strategy_frame = add_strategy_identity(
+            strategy_frame,
+            strategy_key=strategy_key,
+            model_key=model_key,
+            split="test",
+        )
 
-            metrics = strategy_metrics(strategy_frame)
-            rows.append(
-                {
-                    "strategy_key": strategy_key,
-                    "model_key": model_key,
-                    "split": split,
-                    "threshold": threshold,
-                    "cost_per_trade": COST_PER_TRADE,
-                    **metrics,
-                }
-            )
+        metrics = strategy_metrics(strategy_frame)
+        rows.append(
+            {
+                "strategy_key": strategy_key,
+                "model_key": model_key,
+                "split": "test",
+                "threshold": threshold,
+                "cost_per_trade": COST_PER_TRADE,
+                **metrics,
+            }
+        )
 
-            daily = portfolio_daily_returns(strategy_frame)
-            daily["strategy_key"] = strategy_key
-            daily["model_key"] = model_key
-            daily["split"] = split
-            daily["threshold"] = threshold
-            equity_frames.append(daily)
-            strategy_frames.append(strategy_frame)
+        daily = portfolio_daily_returns(strategy_frame)
+        daily["strategy_key"] = strategy_key
+        daily["model_key"] = model_key
+        daily["split"] = "test"
+        daily["threshold"] = threshold
+        equity_frames.append(daily)
+        strategy_frames.append(strategy_frame)
 
     RESULTS_DIR.mkdir(exist_ok=True)
     strategy_metrics_df = pd.DataFrame(rows)

@@ -11,8 +11,7 @@ from typing import Any
 
 import pandas as pd
 
-from config import DATA_DIR
-
+from src.config import DATA_DIR
 
 DATA_FILES = {
     "DJI": DATA_DIR / "combined_dataframe_DJI.csv",
@@ -26,6 +25,10 @@ PROCESSED_VALIDATION_FILE = DATA_DIR / "processed_validation.csv"
 PROCESSED_TEST_FILE = DATA_DIR / "processed_test.csv"
 
 LEAKAGE_COLUMNS = {
+    "EMA_10",
+    "EMA_20",
+    "EMA_50",
+    "EMA_200",
     "mom",
     "mom1",
     "mom2",
@@ -34,6 +37,12 @@ LEAKAGE_COLUMNS = {
     "ROC_10",
     "ROC_15",
     "ROC_20",
+}
+
+CORE_ENGINEERED_COLUMNS = {
+    "return_20d",
+    "volatility_20d",
+    "drawdown_60d",
 }
 
 RAW_NON_FEATURE_COLUMNS = {
@@ -88,18 +97,16 @@ def _load_single_index(index_name: str, path: Any) -> pd.DataFrame:
     feature_frame["drawdown_60d"] = df["Price"] / rolling_high_60d - 1
     feature_frame["price_vs_20d_low"] = df["Price"] / rolling_low_20d - 1
 
+    trailing_emas: dict[int, pd.Series] = {}
     for window in [10, 20, 50, 200]:
-        ema_column = f"EMA_{window}"
-        if ema_column in df.columns:
-            feature_frame[f"price_vs_ema_{window}"] = (
-                df["Price"] / df[ema_column] - 1
-            )
+        trailing_ema = df["Price"].ewm(span=window, adjust=False).mean()
+        trailing_emas[window] = trailing_ema
+        feature_frame[f"price_vs_trailing_ema_{window}"] = (
+            df["Price"] / trailing_ema - 1
+        )
 
-    if {"EMA_10", "EMA_50"}.issubset(df.columns):
-        feature_frame["ema_10_vs_50"] = df["EMA_10"] / df["EMA_50"] - 1
-
-    if {"EMA_20", "EMA_200"}.issubset(df.columns):
-        feature_frame["ema_20_vs_200"] = df["EMA_20"] / df["EMA_200"] - 1
+    feature_frame["trailing_ema_10_vs_50"] = trailing_emas[10] / trailing_emas[50] - 1
+    feature_frame["trailing_ema_20_vs_200"] = trailing_emas[20] / trailing_emas[200] - 1
 
     target_frame = pd.DataFrame(
         {
@@ -134,10 +141,18 @@ def _prepare_features(df: pd.DataFrame) -> pd.DataFrame:
     ]
 
     # Fill missing market data within each index using only current/past values,
-    # then use training medians for remaining gaps.
+    # lag all feature columns by one trading day to avoid using same-close data
+    # for a close-to-close next-day return, then use training medians for gaps.
     df[numeric_columns] = df.groupby("index_name", group_keys=False)[
         numeric_columns
     ].ffill()
+    df[numeric_columns] = df.groupby("index_name", group_keys=False)[
+        numeric_columns
+    ].shift(1)
+
+    core_columns = [c for c in CORE_ENGINEERED_COLUMNS if c in df.columns]
+    if core_columns:
+        df = df.dropna(subset=core_columns)
 
     train_medians = df.loc[df["split"] == "train", numeric_columns].median()
     df[numeric_columns] = df[numeric_columns].fillna(train_medians)
@@ -156,8 +171,7 @@ def load_modeling_dataset() -> pd.DataFrame:
     """
 
     raw_frames = [
-        _load_single_index(index_name, path)
-        for index_name, path in DATA_FILES.items()
+        _load_single_index(index_name, path) for index_name, path in DATA_FILES.items()
     ]
     dataset = pd.concat(raw_frames, ignore_index=True)
     dataset = _prepare_features(dataset)

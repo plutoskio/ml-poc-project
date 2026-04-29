@@ -49,7 +49,7 @@ This ordering matters because the split must happen on a clean supervised datase
 
 - Logistic Regression: transparent baseline.
 - Random Forest: nonlinear tree benchmark.
-- XGBoost or HistGradientBoosting: main performance candidate.
+- HistGradientBoosting: main performance candidate.
 
 ### Planned Baselines
 
@@ -72,11 +72,11 @@ Implement the data preparation pipeline in `src/data.py`:
 
 Implemented `src/data.py`.
 
-Smoke-test results:
+Current smoke-test results after the senior review fix:
 
-- Clean modeling dataset: 10,407 rows, 96 total columns.
-- Model feature matrix: 89 features.
-- Train plus validation rows: 9,063.
+- Clean modeling dataset: 10,227 rows, 100 total columns.
+- Model feature matrix: 93 features.
+- Train plus validation rows: 8,883.
 - Test rows: 1,344.
 - Test period starts in 2022.
 - No missing feature values after preprocessing.
@@ -101,7 +101,7 @@ Added additional non-leaky finance features:
 - Distance from 20-day low.
 - EMA trend spread features.
 
-These are useful because they capture momentum, volatility regime, trend, and drawdown state without using future information.
+These are useful because they capture momentum, volatility regime, trend, and drawdown state without using future information. A later review found that the dataset-provided `EMA_*` columns were actually future-looking, so the corrected pipeline now excludes them and recomputes trailing EMAs from past prices only.
 
 ### Model Training Update
 
@@ -121,25 +121,15 @@ Saved report:
 
 - `results/training_classification_report.csv`
 
-Initial untouched test results:
+The senior review later invalidated the first training results because they were driven by future-looking EMA features.
 
-| Model | Accuracy | Balanced accuracy | F1 | ROC-AUC |
-| --- | ---: | ---: | ---: | ---: |
-| Majority-up baseline | 0.4903 | 0.5000 | 0.6580 | n/a |
-| Previous-day direction baseline | 0.5179 | 0.5177 | 0.5083 | n/a |
-| Logistic Regression | 0.7351 | 0.7351 | 0.7315 | 0.8090 |
-| Random Forest | 0.6778 | 0.6767 | 0.6528 | 0.7226 |
-| Hist Gradient Boosting | 0.7106 | 0.7105 | 0.7060 | 0.7691 |
-
-Current best classifier: Logistic Regression.
-
-Registered model test metrics from `results/model_metrics.csv`:
+Corrected registered model test metrics from `results/model_metrics.csv`:
 
 | Model | Accuracy | Balanced accuracy | Precision | Recall | F1 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Logistic Regression | 0.7359 | 0.7353 | 0.7420 | 0.7071 | 0.7242 |
-| Random Forest | 0.6763 | 0.6754 | 0.6867 | 0.6252 | 0.6545 |
-| Hist Gradient Boosting | 0.6897 | 0.6909 | 0.6618 | 0.7511 | 0.7036 |
+| Logistic Regression | 0.4978 | 0.5010 | 0.4911 | 0.6692 | 0.5665 |
+| Random Forest | 0.5186 | 0.5218 | 0.5067 | 0.6859 | 0.5828 |
+| Hist Gradient Boosting | 0.5089 | 0.5145 | 0.4995 | 0.8027 | 0.6158 |
 
 Next task: build strategy/backtest evaluation using predicted probabilities and long/cash thresholds.
 
@@ -160,20 +150,98 @@ Saved outputs:
 - `results/equity_curves.csv`
 - `results/strategy_returns.csv`
 
-Initial test-period strategy results:
+The first high-return backtest was invalidated by the senior review because it depended on future-looking EMA features.
+
+### Senior Review And Leakage Fix
+
+The senior review found two disqualifying issues:
+
+1. The raw dataset `EMA_10`, `EMA_20`, `EMA_50`, and `EMA_200` columns were future-looking. They follow a backward EMA recurrence and were not available at time `t`.
+2. Same-day close-derived features were being used to enter a close-to-close strategy, which creates execution timing bias.
+
+Fixes implemented:
+
+- Added raw `EMA_*` columns to the leakage exclusion list.
+- Recomputed trailing EMAs from `Price` using only past prices.
+- Renamed valid EMA features to `price_vs_trailing_ema_*`.
+- Shifted all model feature columns by one trading day within each index.
+- Removed misleading validation rows from the final-model backtest output because final models are trained on train plus validation.
+- Regenerated processed data, models, model metrics, and backtest outputs.
+
+Corrected processed dataset summary:
+
+| Dataset | Rows | Columns |
+| --- | ---: | ---: |
+| Full processed modeling dataset | 10,227 | 100 |
+| Train | 7,368 | 100 |
+| Validation | 1,515 | 100 |
+| Test | 1,344 | 100 |
+
+Corrected test-period strategy results:
 
 | Strategy | Threshold | Total return | Annualized return | Sharpe | Max drawdown | Exposure |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Buy and hold | n/a | -0.1014 | -0.0411 | -0.2102 | -0.2549 | 1.0000 |
-| Previous-day direction | n/a | -0.0729 | -0.0346 | -0.2748 | -0.1470 | 0.4903 |
-| Positive 20d momentum | n/a | -0.0534 | -0.0255 | -0.2439 | -0.1450 | 0.4784 |
-| Logistic Regression long/cash | 0.55 | 2.9924 | 0.7862 | 6.9709 | -0.0215 | 0.4122 |
-| Random Forest long/cash | 0.60 | 1.9585 | 0.6167 | 5.6873 | -0.0224 | 0.3482 |
-| Hist Gradient Boosting long/cash | 0.50 | 2.5032 | 0.7137 | 5.7918 | -0.0234 | 0.5565 |
+| Previous-day direction | n/a | -0.2518 | -0.1552 | -1.2371 | -0.2697 | 0.4896 |
+| Price above trailing EMA 20 | n/a | -0.1097 | -0.0596 | -0.5558 | -0.1692 | 0.4926 |
+| Positive 20d momentum | n/a | -0.1226 | -0.0670 | -0.5858 | -0.1874 | 0.4807 |
+| Logistic Regression long/cash | 0.60 | 0.0966 | 0.0572 | 0.5531 | -0.0902 | 0.2552 |
+| Random Forest long/cash | 0.60 | -0.0006 | 0.0020 | 0.0294 | -0.0645 | 0.0915 |
+| Hist Gradient Boosting long/cash | 0.60 | -0.0640 | -0.0293 | -0.2326 | -0.1486 | 0.3854 |
 
-These results are strong enough that the next review step should include additional stress tests:
+Corrected interpretation:
 
-- Feature ablation without `price_vs_ema_*`.
+- The original high Sharpe result was not valid.
+- After removing leakage and lagging features, prediction is close to chance.
+- Logistic Regression shows a modest positive test-period long/cash result, but it is not strong enough to claim a robust trading edge without more validation.
+
+Remaining stress tests:
+
 - Per-index strategy metrics.
 - Higher transaction cost sensitivity.
 - Walk-forward validation instead of a single train/validation/test split.
+- Probability calibration check.
+
+### Repository Update
+
+Earlier commit pushed to GitHub before the leakage correction:
+
+```text
+commit c241856 - Build supervised quant finance pipeline
+origin/main
+```
+
+Current corrected work is local and should be committed after review. Remaining work:
+
+- Streamlit app customization.
+- Robustness/stress tests for the corrected modest edge.
+- Final narrative and charts for the project presentation.
+
+### Plot Generation
+
+Added `scripts/generate_plots.py` and generated corrected post-leakage visual outputs:
+
+- `plots/test_equity_curves.png`
+- `plots/test_drawdowns.png`
+- `plots/test_strategy_metric_bars.png`
+- `plots/test_model_metric_bars.png`
+- `plots/test_return_distribution.png`
+- `plots/test_model_exposure.png`
+
+These plots use the corrected results after excluding future-looking EMA columns and lagging all model features by one trading day.
+
+### Engineering Cleanup
+
+Addressed the senior engineering review items:
+
+- Added project packaging/configuration in `pyproject.toml` so modules can import from `src` without `sys.path` hacks.
+- Added `setup.cfg` and `requirements-dev.txt` for linting, formatting, and tests.
+- Moved shared model definitions/probability helpers into `src/modeling.py`.
+- Reused `src.metrics.compute_classification_metrics()` from training instead of duplicating metric logic.
+- Added focused tests for data leakage rules, target creation, lagged features, classification metrics, and backtest mechanics.
+- Ran formatting and quality checks successfully:
+  - `python -m pytest`
+  - `python -m compileall src scripts tests`
+  - `python -m black --check src scripts tests`
+  - `python -m flake8 src scripts tests`
+  - `python -m pylint src scripts tests`

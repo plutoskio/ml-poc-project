@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 import pandas as pd
 
-from config import MODEL_METRICS_FILE
+from src.config import MODEL_METRICS_FILE
 
 
 def write_metrics(rows: Iterable[dict[str, object]]) -> pd.DataFrame:
