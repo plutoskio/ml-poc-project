@@ -145,50 +145,6 @@ def build_app() -> None:
     else:
         st.info("Model metrics will appear here after running `python scripts/main.py`.")
 
-    st.header("Demand Concentration")
-    plot_columns = st.columns(2)
-    for column, filename, caption in [
-        (plot_columns[0], "top_items.png", "Highest-volume products"),
-        (plot_columns[1], "top_stores.png", "Highest-volume stores"),
-    ]:
-        path = Path(PLOTS_DIR) / filename
-        if path.exists():
-            with column:
-                st.image(str(path), caption=caption, width="stretch")
-
-    if predictions is not None:
-        item_summary = (
-            predictions.groupby("item_nbr", as_index=False)
-            .agg(realized_units=("actual_units", "sum"), predicted_units=("predicted_units", "sum"))
-            .sort_values("realized_units", ascending=False)
-        )
-        store_summary = (
-            predictions.groupby("store_nbr", as_index=False)
-            .agg(realized_units=("actual_units", "sum"), predicted_units=("predicted_units", "sum"))
-            .sort_values("realized_units", ascending=False)
-        )
-        concentration_cols = st.columns(2)
-        with concentration_cols[0]:
-            item_chart = px.bar(
-                item_summary.head(10),
-                x="item_nbr",
-                y=["realized_units", "predicted_units"],
-                barmode="group",
-                title="Top 10 products: realized vs predicted test demand",
-                labels={"value": "Units", "item_nbr": "Item", "variable": ""},
-            )
-            st.plotly_chart(item_chart, width="stretch")
-        with concentration_cols[1]:
-            store_chart = px.bar(
-                store_summary.head(10),
-                x="store_nbr",
-                y=["realized_units", "predicted_units"],
-                barmode="group",
-                title="Top 10 stores: realized vs predicted test demand",
-                labels={"value": "Units", "store_nbr": "Store", "variable": ""},
-            )
-            st.plotly_chart(store_chart, width="stretch")
-
     st.header("Forecast Quality Diagnostics")
     if predictions is not None:
         diagnostics_cols = st.columns(2)
