@@ -1,0 +1,10 @@
+metric,value
+rows,4617600
+stores,45
+items,111
+weather_stations,20
+date_min,2012-01-01
+date_max,2014-10-31
+zero_sales_share,0.9742948717948718
+positive_sales_rows,118696
+chronological_test_start,2014-07-01
