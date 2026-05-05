@@ -69,12 +69,11 @@ def build_app() -> None:
         metrics = pd.read_csv(metrics_path)
         best = metrics.sort_values("rmsle").iloc[0]
 
-        credibility_cols = st.columns(5)
+        credibility_cols = st.columns(4)
         credibility_cols[0].metric("Selected Model", best["model_name"])
         credibility_cols[1].metric("R^2", f"{best['r2']:.3f}")
-        credibility_cols[2].metric("RMSLE", f"{best['rmsle']:.3f}")
-        credibility_cols[3].metric("MAE", f"{best['mae']:.3f}")
-        credibility_cols[4].metric("Positive-sales MAE", f"{best['positive_sales_mae']:.2f}")
+        credibility_cols[2].metric("MAE", f"{best['mae']:.3f}")
+        credibility_cols[3].metric("Positive-sales MAE", f"{best['positive_sales_mae']:.2f}")
 
         st.write(
             "Credibility comes from a chronological backtest: models are trained on "
@@ -88,7 +87,6 @@ def build_app() -> None:
                     "model_name",
                     "mae",
                     "rmse",
-                    "rmsle",
                     "r2",
                     "positive_sales_mae",
                     "zero_sales_mae",
@@ -140,8 +138,9 @@ def build_app() -> None:
             test_cols[2].metric("Portfolio Bias", f"{bias:.1%}")
 
         st.success(
-            f"Best model by RMSLE: {best['model_name']} "
-            f"(RMSLE={best['rmsle']:.4f}, R^2={best['r2']:.4f}, MAE={best['mae']:.4f})."
+            f"Selected model: {best['model_name']} "
+            f"(R^2={best['r2']:.4f}, MAE={best['mae']:.4f}, "
+            f"positive-sales MAE={best['positive_sales_mae']:.4f})."
         )
     else:
         st.info("Model metrics will appear here after running `python scripts/main.py`.")
