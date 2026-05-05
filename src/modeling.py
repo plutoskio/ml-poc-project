@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import PoissonRegressor, Ridge
+from sklearn.linear_model import PoissonRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, StandardScaler
 
@@ -65,49 +65,6 @@ def bounded_expm1(log_predictions: np.ndarray) -> np.ndarray:
     """Convert log predictions back to units without allowing impossible overflow."""
     clipped = np.clip(log_predictions, 0, np.log1p(MAX_REASONABLE_UNITS))
     return np.expm1(clipped)
-
-
-def make_ridge_log_regression() -> TransformedTargetRegressor:
-    """Build a regularized linear model for sparse, high-cardinality tabular data."""
-    preprocessor = ColumnTransformer(
-        transformers=[
-            (
-                "categorical",
-                OneHotEncoder(
-                    categories=[CATEGORY_LEVELS[column] for column in CATEGORICAL_COLUMNS],
-                    handle_unknown="ignore",
-                    sparse_output=True,
-                    dtype=np.float32,
-                ),
-                CATEGORICAL_COLUMNS,
-            ),
-            (
-                "numeric",
-                Pipeline(
-                    steps=[
-                        ("imputer", SimpleImputer(strategy="median")),
-                        ("scaler", StandardScaler(with_mean=False)),
-                    ]
-                ),
-                NUMERIC_COLUMNS,
-            ),
-        ],
-        sparse_threshold=0.3,
-    )
-
-    model = Pipeline(
-        steps=[
-            ("preprocessor", preprocessor),
-            ("regressor", Ridge(alpha=3.0, random_state=RANDOM_STATE)),
-        ]
-    )
-
-    return TransformedTargetRegressor(
-        regressor=model,
-        func=np.log1p,
-        inverse_func=bounded_expm1,
-        check_inverse=False,
-    )
 
 
 def make_poisson_regression() -> Pipeline:

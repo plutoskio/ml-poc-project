@@ -138,20 +138,7 @@ Because the target is very sparse, ML models are trained on all positive-sales
 rows plus a controlled sample of zero-sales rows. Evaluation is still performed
 on the full chronological test set.
 
-## 8. PCA Experiment
-
-The project includes a separate PCA A/B test in `scripts/run_pca_ab_test.py`.
-
-PCA is tested only on numeric engineered features, not on the full one-hot
-categorical space. The experiment compares:
-
-- numeric ridge regression without PCA
-- numeric ridge regression with PCA retaining 95% explained variance
-
-PCA is kept as an experiment rather than a default model because dimensionality
-reduction can remove useful sparse demand signals.
-
-## 9. Metrics
+## 8. Metrics
 
 The project reports:
 
@@ -164,10 +151,12 @@ The project reports:
 - MAE on positive-sales rows
 - MAE on zero-sales rows
 
-RMSLE is especially relevant because demand is skewed and the original Kaggle
-problem used a forecasting-style error perspective where relative error matters.
+R2 is included as a management-friendly credibility metric: it estimates how
+much of the variance in later-period sales the model explains. RMSLE is also
+important because demand is skewed and the original Kaggle problem used a
+forecasting-style error perspective where relative error matters.
 
-## 10. Expected Project Outputs
+## 9. Expected Project Outputs
 
 After running the scripts, the expected outputs are:
 
@@ -175,7 +164,6 @@ After running the scripts, the expected outputs are:
 - `results/data_overview.csv`
 - `results/weather_missingness.csv`
 - `results/model_metrics.csv`
-- `results/pca_ab_test.csv`
 - `results/best_model_test_predictions.csv`
 - `results/model_predictions_sample.csv`
 - charts in `plots/`
@@ -193,11 +181,10 @@ The supporting development commands are:
 ```bash
 python scripts/prepare_data.py
 python scripts/train_models.py
-python scripts/run_pca_ab_test.py
 python scripts/generate_plots.py
 ```
 
-## 11. Current Results
+## 10. Current Results
 
 Chronological test period: `2014-07-01` to `2014-10-31`
 
@@ -210,18 +197,16 @@ Chronological test period: `2014-07-01` to `2014-10-31`
 The best model is Histogram Gradient Boosting. It substantially improves the
 lag baseline on every main metric, including RMSLE and positive-sales MAE.
 
-PCA experiment:
+For a Walmart management audience, the dashboard focuses on:
 
-| Experiment | Components | Explained variance | MAE | RMSE | RMSLE | R2 |
-|---|---:|---:|---:|---:|---:|---:|
-| Numeric ridge with PCA | 12 | 95.9% | 1.979 | 68.163 | 0.392 | -87.483 |
-| Numeric ridge without PCA | 0 | 0.0% | 1.993 | 68.928 | 0.392 | -89.482 |
+- whether the selected model is credible versus baselines;
+- how much variance it explains through R2;
+- whether portfolio-level demand is tracked over time;
+- which products and stores concentrate sales volume;
+- realized versus predicted sales for the highest-volume product at a selected
+  store and week.
 
-PCA slightly improves the numeric ridge experiment, but both numeric-only ridge
-variants perform poorly on high-demand rows. PCA is therefore documented as an
-experiment, not selected for the final model registry.
-
-## 12. Current Limitations
+## 11. Current Limitations
 
 - The dataset is old and represents a fixed historical competition context.
 - The project does not use external holidays or promotions, which would likely

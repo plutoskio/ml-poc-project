@@ -88,6 +88,6 @@ Gradient Boosting is the best model:
 - zero-sales MAE: 0.009
 
 The weighted Poisson model is a useful count-model comparison but does not beat
-the lag baseline on RMSE or positive-sales MAE. The PCA A/B test slightly
-improves numeric ridge RMSLE, but both PCA and non-PCA numeric ridge variants
-perform poorly on high-demand rows, so PCA is not selected for the final model.
+the lag baseline on RMSE or positive-sales MAE. The management dashboard focuses
+on model credibility, aggregate realized-versus-predicted demand, product/store
+sales concentration, and drilldowns for the highest-volume product.

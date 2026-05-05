@@ -7,25 +7,29 @@ import streamlit as st
 from config import PLOTS_DIR, RESULTS_DIR, WALMART_RAW_DIR
 
 
+def _format_units(value: float) -> str:
+    return f"{value:,.0f}"
+
+
 def build_app() -> None:
-    """Build the Streamlit presentation for the ML proof of concept."""
+    """Build the Streamlit management dashboard for the ML proof of concept."""
     st.set_page_config(
-        page_title="Walmart Sales Forecasting POC",
+        page_title="Walmart Demand Forecasting",
         layout="wide",
     )
 
-    st.title("Walmart Sales Forecasting POC")
+    st.title("Walmart Demand Forecasting")
     st.markdown(
-        "Forecast item-level unit sales for Walmart stores using historical sales "
-        "and local weather observations."
+        "Management view of item-level demand forecasts, model credibility, and "
+        "store-product forecast performance."
     )
 
-    st.header("Business Objective")
+    st.header("Executive Objective")
     st.write(
-        "The objective is to help a retailer anticipate daily demand at the "
-        "store-item level. Better short-term sales forecasts can support inventory "
-        "planning, replenishment, and staffing decisions, especially when weather "
-        "events may affect demand."
+        "The model estimates daily unit demand for each store and product. The "
+        "operational use case is inventory planning: identifying where demand is "
+        "likely to occur, how accurate the forecast is, and which store-product "
+        "combinations deserve management attention."
     )
     st.caption(
         "The historical same-day weather fields are used as a proxy for same-day "
@@ -33,53 +37,51 @@ def build_app() -> None:
         "come from weather forecasts available before the sales day."
     )
 
-    st.header("Dataset and Validation Setup")
-    st.write(f"Raw data folder: `{WALMART_RAW_DIR}`")
-
     overview_path = Path(RESULTS_DIR) / "data_overview.csv"
+    metrics_path = Path(RESULTS_DIR) / "model_metrics.csv"
+    predictions_path = Path(RESULTS_DIR) / "best_model_test_predictions.csv"
+
+    st.header("Data Coverage")
     if overview_path.exists():
         overview = pd.read_csv(overview_path)
         values = dict(zip(overview["metric"], overview["value"], strict=False))
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Rows", f"{int(values.get('rows', 0)):,}")
-        col2.metric("Stores", values.get("stores", ""))
-        col3.metric("Items", values.get("items", ""))
+        coverage_cols = st.columns(5)
+        coverage_cols[0].metric("Historical Rows", f"{int(values.get('rows', 0)):,}")
+        coverage_cols[1].metric("Stores", values.get("stores", ""))
+        coverage_cols[2].metric("Items", values.get("items", ""))
+        coverage_cols[3].metric("Weather Stations", values.get("weather_stations", ""))
         zero_share = float(values.get("zero_sales_share", 0))
-        col4.metric("Zero Sales Share", f"{zero_share:.1%}")
+        coverage_cols[4].metric("Zero-sales Rows", f"{zero_share:.1%}")
 
         st.caption(
-            "Chronological split: train before "
-            f"{values.get('chronological_test_start')} and test from that date onward."
+            f"Raw data folder: `{WALMART_RAW_DIR}`. Backtest uses a chronological split: "
+            f"train before {values.get('chronological_test_start')} and test from that date onward."
         )
     else:
         st.info("Run `python scripts/prepare_data.py` to generate dataset summaries.")
 
-    st.header("Exploratory Insights")
-    plot_columns = st.columns(2)
-    plot_files = [
-        ("monthly_unit_sales.png", "Monthly sales volume"),
-        ("weather_missingness.png", "Weather data quality"),
-        ("top_items.png", "Top selling items"),
-        ("top_stores.png", "Top selling stores"),
-    ]
-    for index, (filename, caption) in enumerate(plot_files):
-        path = Path(PLOTS_DIR) / filename
-        if path.exists():
-            with plot_columns[index % 2]:
-                st.image(str(path), caption=caption, use_container_width=True)
+    predictions = None
+    if predictions_path.exists():
+        predictions = pd.read_csv(predictions_path, parse_dates=["date"])
 
-    metrics_path = Path(RESULTS_DIR) / "model_metrics.csv"
+    st.header("Forecast Credibility")
     if metrics_path.exists():
-        st.header("Model Comparison")
         metrics = pd.read_csv(metrics_path)
         best = metrics.sort_values("rmsle").iloc[0]
 
-        metric_cols = st.columns(4)
-        metric_cols[0].metric("Best Model", best["model_name"])
-        metric_cols[1].metric("R^2", f"{best['r2']:.3f}")
-        metric_cols[2].metric("RMSLE", f"{best['rmsle']:.3f}")
-        metric_cols[3].metric("MAE", f"{best['mae']:.3f}")
+        credibility_cols = st.columns(5)
+        credibility_cols[0].metric("Selected Model", best["model_name"])
+        credibility_cols[1].metric("R^2", f"{best['r2']:.3f}")
+        credibility_cols[2].metric("RMSLE", f"{best['rmsle']:.3f}")
+        credibility_cols[3].metric("MAE", f"{best['mae']:.3f}")
+        credibility_cols[4].metric("Positive-sales MAE", f"{best['positive_sales_mae']:.2f}")
 
+        st.write(
+            "Credibility comes from a chronological backtest: models are trained on "
+            "past dates and evaluated on later dates. The selected model explains "
+            f"{best['r2']:.1%} of test-period variance and materially beats the "
+            "transparent lag baseline."
+        )
         st.dataframe(
             metrics[
                 [
@@ -94,20 +96,48 @@ def build_app() -> None:
                     "mean_predicted_units",
                 ]
             ],
-            use_container_width=True,
+            width="stretch",
         )
 
-        metric_plot = Path(PLOTS_DIR) / "model_metric_bars.png"
-        if metric_plot.exists():
-            st.image(str(metric_plot), caption="Regression metrics by model", use_container_width=True)
+        if predictions is not None:
+            daily = (
+                predictions.groupby("date", as_index=False)
+                .agg(
+                    realized_units=("actual_units", "sum"),
+                    predicted_units=("predicted_units", "sum"),
+                    absolute_error=("absolute_error", "sum"),
+                )
+                .sort_values("date")
+            )
+            daily_long = daily.melt(
+                id_vars=["date"],
+                value_vars=["realized_units", "predicted_units"],
+                var_name="series",
+                value_name="units",
+            )
+            daily_long["series"] = daily_long["series"].map(
+                {
+                    "realized_units": "Realized units",
+                    "predicted_units": "Predicted units",
+                }
+            )
+            daily_chart = px.line(
+                daily_long,
+                x="date",
+                y="units",
+                color="series",
+                title="Portfolio-level daily demand: realized vs predicted",
+                labels={"date": "Date", "units": "Units", "series": ""},
+            )
+            st.plotly_chart(daily_chart, width="stretch")
 
-        pca_path = Path(RESULTS_DIR) / "pca_ab_test.csv"
-        if pca_path.exists():
-            st.subheader("PCA Experiment")
-            st.dataframe(pd.read_csv(pca_path), use_container_width=True)
-            pca_plot = Path(PLOTS_DIR) / "pca_ab_test.png"
-            if pca_plot.exists():
-                st.image(str(pca_plot), caption="Numeric ridge with and without PCA", use_container_width=True)
+            total_realized = daily["realized_units"].sum()
+            total_predicted = daily["predicted_units"].sum()
+            bias = (total_predicted - total_realized) / total_realized
+            test_cols = st.columns(3)
+            test_cols[0].metric("Test Realized Units", _format_units(total_realized))
+            test_cols[1].metric("Test Predicted Units", _format_units(total_predicted))
+            test_cols[2].metric("Portfolio Bias", f"{bias:.1%}")
 
         st.success(
             f"Best model by RMSLE: {best['model_name']} "
@@ -116,10 +146,53 @@ def build_app() -> None:
     else:
         st.info("Model metrics will appear here after running `python scripts/main.py`.")
 
-    st.header("Realized vs Predicted Sales")
-    predictions_path = Path(RESULTS_DIR) / "best_model_test_predictions.csv"
-    if predictions_path.exists():
-        predictions = pd.read_csv(predictions_path, parse_dates=["date"])
+    st.header("Demand Concentration")
+    plot_columns = st.columns(2)
+    for column, filename, caption in [
+        (plot_columns[0], "top_items.png", "Highest-volume products"),
+        (plot_columns[1], "top_stores.png", "Highest-volume stores"),
+    ]:
+        path = Path(PLOTS_DIR) / filename
+        if path.exists():
+            with column:
+                st.image(str(path), caption=caption, width="stretch")
+
+    if predictions is not None:
+        item_summary = (
+            predictions.groupby("item_nbr", as_index=False)
+            .agg(realized_units=("actual_units", "sum"), predicted_units=("predicted_units", "sum"))
+            .sort_values("realized_units", ascending=False)
+        )
+        store_summary = (
+            predictions.groupby("store_nbr", as_index=False)
+            .agg(realized_units=("actual_units", "sum"), predicted_units=("predicted_units", "sum"))
+            .sort_values("realized_units", ascending=False)
+        )
+        concentration_cols = st.columns(2)
+        with concentration_cols[0]:
+            item_chart = px.bar(
+                item_summary.head(10),
+                x="item_nbr",
+                y=["realized_units", "predicted_units"],
+                barmode="group",
+                title="Top 10 products: realized vs predicted test demand",
+                labels={"value": "Units", "item_nbr": "Item", "variable": ""},
+            )
+            st.plotly_chart(item_chart, width="stretch")
+        with concentration_cols[1]:
+            store_chart = px.bar(
+                store_summary.head(10),
+                x="store_nbr",
+                y=["realized_units", "predicted_units"],
+                barmode="group",
+                title="Top 10 stores: realized vs predicted test demand",
+                labels={"value": "Units", "store_nbr": "Store", "variable": ""},
+            )
+            st.plotly_chart(store_chart, width="stretch")
+
+    st.header("Forecast Quality Diagnostics")
+    if predictions is not None:
+        diagnostics_cols = st.columns(2)
 
         plot_sample = predictions.sample(
             n=min(15_000, len(predictions)),
@@ -154,7 +227,26 @@ def build_app() -> None:
         )
         scatter.update_xaxes(range=[0, axis_limit])
         scatter.update_yaxes(range=[0, axis_limit])
-        st.plotly_chart(scatter, use_container_width=True)
+        with diagnostics_cols[0]:
+            st.plotly_chart(scatter, width="stretch")
+
+        error_sample = predictions[predictions["actual_units"] > 0].sample(
+            n=min(15_000, int((predictions["actual_units"] > 0).sum())),
+            random_state=42,
+        )
+        error_hist = px.histogram(
+            error_sample,
+            x="absolute_error",
+            nbins=60,
+            title="Absolute error distribution on positive-sales rows",
+            labels={"absolute_error": "Absolute error in units"},
+        )
+        error_hist.update_xaxes(range=[0, error_sample["absolute_error"].quantile(0.98)])
+        with diagnostics_cols[1]:
+            st.plotly_chart(error_hist, width="stretch")
+
+    st.header("Management Drilldown: Highest-volume Product")
+    if predictions is not None:
 
         top_items_path = Path(RESULTS_DIR) / "top_items.csv"
         if top_items_path.exists():
@@ -164,10 +256,9 @@ def build_app() -> None:
                 predictions.groupby("item_nbr")["actual_units"].sum().idxmax()
             )
 
-        st.subheader("Top Product, One Store, One Week")
         st.caption(
             f"Item {top_item} is the highest-selling product in the historical data. "
-            "Use the controls below to inspect one realized-vs-predicted week for that item."
+            "Use the controls below to inspect realized versus predicted demand for one store and week."
         )
 
         top_item_predictions = predictions[predictions["item_nbr"] == top_item].copy()
@@ -237,11 +328,19 @@ def build_app() -> None:
             title=f"Item {top_item}, store {selected_store}: one-week sales forecast",
             labels={"date": "Date", "units": "Units", "series": ""},
         )
-        st.plotly_chart(line, use_container_width=True)
+        st.plotly_chart(line, width="stretch")
         st.caption(
             f"This selected calendar week has {week_predictions['date'].nunique()} "
             "available sales dates in the test data."
         )
+
+        week_realized = week_predictions["actual_units"].sum()
+        week_predicted = week_predictions["predicted_units"].sum()
+        week_error = abs(week_realized - week_predicted)
+        week_cols = st.columns(3)
+        week_cols[0].metric("Week Realized Units", _format_units(week_realized))
+        week_cols[1].metric("Week Predicted Units", _format_units(week_predicted))
+        week_cols[2].metric("Week Absolute Error", _format_units(week_error))
 
         st.dataframe(
             week_predictions[
@@ -254,13 +353,21 @@ def build_app() -> None:
                     "absolute_error",
                 ]
             ],
-            use_container_width=True,
+            width="stretch",
         )
     else:
         st.info(
             "Dated realized-vs-predicted plots will appear after running "
             "`python scripts/main.py` or `python scripts/train_models.py`."
         )
+
+    st.header("Operational Notes")
+    st.write(
+        "The model is most credible as a short-term planning aid, not as an automatic "
+        "ordering system. It should be monitored for forecast bias, retrained as new "
+        "sales become available, and paired with business context such as promotions, "
+        "holidays, and supply constraints."
+    )
 
 
 if __name__ == "__main__":

@@ -85,22 +85,6 @@ def main() -> None:
         plt.savefig(PLOTS_DIR / "model_metric_bars.png", dpi=160)
         plt.close()
 
-    pca_path = RESULTS_DIR / "pca_ab_test.csv"
-    if pca_path.exists():
-        pca_results = pd.read_csv(pca_path)
-        pca_long = pca_results.melt(
-            id_vars=["experiment"],
-            value_vars=["mae", "rmse", "rmsle"],
-            var_name="metric",
-            value_name="value",
-        )
-        plt.figure(figsize=(10, 5))
-        sns.barplot(data=pca_long, x="metric", y="value", hue="experiment")
-        plt.title("PCA A/B Test on Numeric Engineered Features")
-        plt.tight_layout()
-        plt.savefig(PLOTS_DIR / "pca_ab_test.png", dpi=160)
-        plt.close()
-
     predictions_path = RESULTS_DIR / "model_predictions_sample.csv"
     if predictions_path.exists():
         predictions = pd.read_csv(predictions_path)
