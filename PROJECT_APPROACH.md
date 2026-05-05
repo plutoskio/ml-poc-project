@@ -41,6 +41,11 @@ The pipeline creates:
 Lag features are shifted before rolling calculations, so each row only sees
 historical sales values.
 
+Same-day historical weather is used as a proxy for same-day weather forecasts.
+In a production forecasting setup, future weather inputs would come from a
+forecast provider before the sales day occurs, so these weather variables are not
+treated as leakage in the way same-day sales would be.
+
 ## Modeling
 
 The proof of concept compares:

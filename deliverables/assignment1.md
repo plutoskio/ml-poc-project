@@ -93,6 +93,27 @@ The sales lag and rolling features are shifted by at least one row within each
 store-item pair. This means the row for a date never uses that same date's target
 value.
 
+### Weather Timing and Forecast Availability
+
+The model uses weather variables for the same date as the sales target. This is
+not a logical leakage issue for this business case, because the intended
+production use case is to forecast future sales using weather forecasts.
+
+For example, if the retailer wants to predict tomorrow's sales, tomorrow's
+expected temperature, rain, snow, and wind conditions can be supplied by a weather
+forecast provider before the sales day occurs. In the historical training data,
+the realized weather observations are used as a practical proxy for those
+forecasted weather inputs.
+
+The important constraint is that sales lag features must not use same-day or
+future sales. The pipeline respects that constraint by shifting all lag and
+rolling sales features before they are used. Weather is different: same-day
+weather can be available as a forecast at prediction time, so it is a valid input
+for a demand forecasting model.
+
+The remaining limitation is forecast error. In a real deployment, model
+performance would depend partly on the quality of the weather forecast provider.
+
 ## 7. Models
 
 The project compares three registered models:
@@ -155,6 +176,7 @@ After running the scripts, the expected outputs are:
 - `results/weather_missingness.csv`
 - `results/model_metrics.csv`
 - `results/pca_ab_test.csv`
+- `results/best_model_test_predictions.csv`
 - `results/model_predictions_sample.csv`
 - charts in `plots/`
 - saved model files in `models/`

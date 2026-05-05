@@ -24,6 +24,7 @@ from modeling import (  # noqa: E402
     make_poisson_regression,
     select_training_sample,
 )
+from results import save_best_model_predictions  # noqa: E402
 
 
 def evaluate_and_save_predictions(
@@ -82,17 +83,12 @@ def main() -> None:
     metrics = pd.DataFrame(rows).sort_values("rmsle")
     metrics.to_csv(RESULTS_DIR / "model_metrics.csv", index=False)
 
-    best_model_id = metrics.iloc[0]["model_id"]
-    best_model = joblib.load(MODELS[best_model_id]["path"])
-    sample_index = X_test.sample(
-        n=min(5000, len(X_test)),
+    save_best_model_predictions(
+        metrics=metrics,
+        X_test=X_test,
+        y_test=y_test,
         random_state=RANDOM_STATE,
-    ).index
-    prediction_sample = X_test.loc[sample_index, ["store_nbr", "item_nbr", "month", "dayofweek"]].copy()
-    prediction_sample["actual_units"] = y_test.loc[sample_index].to_numpy()
-    prediction_sample["predicted_units"] = np.maximum(best_model.predict(X_test.loc[sample_index]), 0)
-    prediction_sample["best_model_id"] = best_model_id
-    prediction_sample.to_csv(RESULTS_DIR / "model_predictions_sample.csv", index=False)
+    )
 
     print(metrics.to_string(index=False))
 
