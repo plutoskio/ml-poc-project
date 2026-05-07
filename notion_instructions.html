@@ -1,1483 +1,748 @@
-<html>
-
-<head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<title>ML Proof of Concept</title>
-	<style>
-		/* cspell:disable-file */
-		/* webkit printing magic: print all background colors */
-		html {
-			-webkit-print-color-adjust: exact;
-		}
-
-		* {
-			box-sizing: border-box;
-			-webkit-print-color-adjust: exact;
-		}
-
-		html,
-		body {
-			margin: 0;
-			padding: 0;
-		}
-
-		@media only screen {
-			body {
-				margin: 2em auto;
-				max-width: 900px;
-				color: rgb(55, 53, 47);
-			}
-		}
-
-		body {
-			line-height: 1.5;
-			white-space: pre-wrap;
-		}
-
-		a,
-		a.visited {
-			color: inherit;
-			text-decoration: underline;
-		}
-
-		.pdf-relative-link-path {
-			font-size: 80%;
-			color: #444;
-		}
-
-		h1,
-		h2,
-		h3 {
-			letter-spacing: -0.01em;
-			line-height: 1.2;
-			font-weight: 600;
-			margin-bottom: 0;
-		}
-
-		/* Override strong tags inside headings to maintain consistent weight */
-		h1 strong,
-		h2 strong,
-		h3 strong {
-			font-weight: 600;
-		}
-
-		.page-title {
-			font-size: 2.5rem;
-			font-weight: 700;
-			margin-top: 0;
-			margin-bottom: 0.75em;
-		}
-
-		h1 {
-			font-size: 1.875rem;
-			margin-top: 1.875rem;
-		}
-
-		h2 {
-			font-size: 1.5rem;
-			margin-top: 1.5rem;
-		}
-
-		h3 {
-			font-size: 1.25rem;
-			margin-top: 1.25rem;
-		}
-
-		.source {
-			border: 1px solid #ddd;
-			border-radius: 3px;
-			padding: 1.5em;
-			word-break: break-all;
-		}
-
-		.callout {
-			border-radius: 10px;
-			padding: 1rem;
-		}
-
-		figure {
-			margin: 1.25em 0;
-			page-break-inside: avoid;
-		}
-
-		figcaption {
-			opacity: 0.5;
-			font-size: 85%;
-			margin-top: 0.5em;
-		}
-
-		mark {
-			background-color: transparent;
-		}
-
-		.indented {
-			padding-left: 1.5em;
-		}
-
-		hr {
-			background: transparent;
-			display: block;
-			width: 100%;
-			height: 1px;
-			visibility: visible;
-			border: none;
-			border-bottom: 1px solid rgba(55, 53, 47, 0.09);
-		}
-
-		img {
-			max-width: 100%;
-		}
-
-		@media only print {
-			img {
-				max-height: 100vh;
-				object-fit: contain;
-			}
-
-			table.collection-content {
-				width: 100%;
-				table-layout: fixed;
-			}
-
-			table.collection-content th,
-			table.collection-content td {
-				overflow-wrap: anywhere;
-			}
-
-			table.collection-content td>.user,
-			table.collection-content td>time {
-				white-space: pre-wrap;
-			}
-		}
-
-		@page {
-			margin: 1in;
-		}
-
-		.collection-content-wrapper {
-			overflow-x: auto;
-		}
-
-		@media only print {
-			.collection-content-wrapper {
-				overflow-x: visible;
-			}
-		}
-
-		.collection-content {
-			font-size: 0.875rem;
-		}
-
-		.collection-content td {
-			white-space: pre-wrap;
-			word-break: break-word;
-		}
-
-		.column-list {
-			display: flex;
-			gap: 46px;
-		}
-
-		.column {
-			min-width: 0;
-			overflow: hidden;
-		}
-
-		.column>*:first-child {
-			margin-top: 0;
-		}
-
-		.table_of_contents-item {
-			display: block;
-			font-size: 0.875rem;
-			line-height: 1.3;
-			padding: 0.125rem;
-		}
-
-		.table_of_contents-indent-1 {
-			margin-left: 1.5rem;
-		}
-
-		.table_of_contents-indent-2 {
-			margin-left: 3rem;
-		}
-
-		.table_of_contents-indent-3 {
-			margin-left: 4.5rem;
-		}
-
-		.table_of_contents-link {
-			text-decoration: none;
-			opacity: 0.7;
-			border-bottom: 1px solid rgba(55, 53, 47, 0.18);
-		}
-
-		table,
-		th,
-		td {
-			border: 1px solid rgba(55, 53, 47, 0.09);
-		}
-
-		table {
-			border-collapse: collapse;
-			border-left: none;
-			border-right: none;
-		}
-
-		th,
-		td {
-			font-weight: normal;
-			padding: 0.25em 0.5em;
-			line-height: 1.5;
-			min-height: 1.5em;
-			text-align: left;
-		}
-
-		th {
-			color: rgba(55, 53, 47, 0.6);
-		}
-
-		ol,
-		ul {
-			margin: 0;
-			margin-block-start: 0.6em;
-			margin-block-end: 0.6em;
-		}
-
-		li>ol:first-child,
-		li>ul:first-child {
-			margin-block-start: 0.6em;
-		}
-
-		ul>li {
-			list-style: disc;
-		}
-
-		ul.to-do-list {
-			padding-inline-start: 0;
-		}
-
-		ul.to-do-list>li {
-			list-style: none;
-		}
-
-		.to-do-children-checked {
-			text-decoration: line-through;
-			opacity: 0.375;
-		}
-
-		ul.toggle>li {
-			list-style: none;
-		}
-
-		ul {
-			padding-inline-start: 1.7em;
-		}
-
-		ul>li {
-			padding-left: 0.1em;
-		}
-
-		ol {
-			padding-inline-start: 1.6em;
-		}
-
-		ol.numbered-list.numbered-list-digits-2 {
-			padding-inline-start: 2em;
-		}
-
-		ol.numbered-list.numbered-list-digits-3plus {
-			padding-inline-start: 2.4em;
-		}
-
-		ol>li {
-			padding-left: 0.2em;
-		}
-
-		.mono ol {
-			padding-inline-start: 2em;
-		}
-
-		.mono ol>li {
-			text-indent: -0.4em;
-		}
-
-		.toggle {
-			padding-inline-start: 0em;
-			list-style-type: none;
-		}
-
-		/* Indent toggle children */
-		.toggle>li>details {
-			padding-left: 1.7em;
-		}
-
-		.toggle>li>details>summary {
-			margin-left: -1.1em;
-		}
-
-		.selected-value {
-			display: inline-block;
-			padding: 0 0.5em;
-			background: rgba(206, 205, 202, 0.5);
-			border-radius: 3px;
-			margin-right: 0.5em;
-			margin-top: 0.3em;
-			margin-bottom: 0.3em;
-			white-space: nowrap;
-		}
-
-		.collection-title {
-			display: inline-block;
-			margin-right: 1em;
-		}
-
-		.page-description {
-			margin-bottom: 2em;
-		}
-
-		.simple-table {
-			margin-top: 1em;
-			font-size: 0.875rem;
-			empty-cells: show;
-		}
-
-		.simple-table td {
-			height: 29px;
-			min-width: 120px;
-		}
-
-		.simple-table th {
-			height: 29px;
-			min-width: 120px;
-		}
-
-		.simple-table-header-color {
-			background: rgb(247, 246, 243);
-			color: black;
-		}
-
-		.simple-table-header {
-			font-weight: 500;
-		}
-
-		time {
-			opacity: 0.5;
-		}
-
-		.icon {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			max-width: 1.2em;
-			max-height: 1.2em;
-			text-decoration: none;
-			vertical-align: text-bottom;
-			margin-right: 0.5em;
-		}
-
-		img.icon {
-			border-radius: 3px;
-		}
-
-		.callout img.notion-static-icon {
-			width: 1em;
-			height: 1em;
-		}
-
-		.callout p {
-			margin: 0;
-		}
-
-		.callout h1,
-		.callout h2,
-		.callout h3 {
-			margin: 0 0 0.6rem;
-		}
-
-		.user-icon {
-			width: 1.5em;
-			height: 1.5em;
-			border-radius: 100%;
-			margin-right: 0.5rem;
-		}
-
-		.user-icon-inner {
-			font-size: 0.8em;
-		}
-
-		.text-icon {
-			border: 1px solid #000;
-			text-align: center;
-		}
-
-		.page-cover-image {
-			display: block;
-			object-fit: cover;
-			width: 100%;
-			max-height: 30vh;
-		}
-
-		.page-header-icon {
-			font-size: 3rem;
-			margin-bottom: 1rem;
-		}
-
-		.page-header-icon-with-cover {
-			margin-top: -0.72em;
-			margin-left: 0.07em;
-		}
-
-		.page-header-icon img {
-			border-radius: 3px;
-		}
-
-		.link-to-page {
-			margin: 1em 0;
-			padding: 0;
-			border: none;
-			font-weight: 500;
-		}
-
-		p>.user {
-			opacity: 0.5;
-		}
-
-		td>.user,
-		td>time {
-			white-space: nowrap;
-		}
-
-		input[type="checkbox"] {
-			transform: scale(1.5);
-			margin-right: 0.6em;
-			vertical-align: middle;
-		}
-
-		p {
-			margin-top: 0.5em;
-			margin-bottom: 0.5em;
-		}
-
-		.image {
-			border: none;
-			margin: 1.5em 0;
-			padding: 0;
-			border-radius: 0;
-			text-align: center;
-		}
-
-		.code,
-		code {
-			background: rgba(135, 131, 120, 0.15);
-			border-radius: 3px;
-			padding: 0.2em 0.4em;
-			border-radius: 3px;
-			font-size: 85%;
-			tab-size: 2;
-		}
-
-		code {
-			color: #eb5757;
-		}
-
-		.code {
-			padding: 1.5em 1em;
-		}
-
-		.code-wrap {
-			white-space: pre-wrap;
-			word-break: break-all;
-		}
-
-		.code>code {
-			background: none;
-			padding: 0;
-			font-size: 100%;
-			color: inherit;
-		}
-
-		blockquote {
-			font-size: 1em;
-			margin: 1em 0;
-			padding-left: 1em;
-			border-left: 3px solid rgb(55, 53, 47);
-		}
-
-		blockquote.quote-large {
-			font-size: 1.25em;
-		}
-
-		.bookmark {
-			text-decoration: none;
-			max-height: 8em;
-			padding: 0;
-			display: flex;
-			width: 100%;
-			align-items: stretch;
-		}
-
-		.bookmark-title {
-			font-size: 0.85em;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			height: 1.75em;
-			white-space: nowrap;
-		}
-
-		.bookmark-text {
-			display: flex;
-			flex-direction: column;
-		}
-
-		.bookmark-info {
-			flex: 4 1 180px;
-			padding: 12px 14px 14px;
-			display: flex;
-			flex-direction: column;
-			justify-content: space-between;
-		}
-
-		.bookmark-image {
-			width: 33%;
-			flex: 1 1 180px;
-			display: block;
-			position: relative;
-			object-fit: cover;
-			border-radius: 1px;
-		}
-
-		.bookmark-description {
-			color: rgba(55, 53, 47, 0.6);
-			font-size: 0.75em;
-			overflow: hidden;
-			max-height: 4.5em;
-			word-break: break-word;
-		}
-
-		.bookmark-href {
-			font-size: 0.75em;
-			margin-top: 0.25em;
-		}
-
-		.sans {
-			font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
-		}
-
-		.code {
-			font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace;
-		}
-
-		.serif {
-			font-family: Lyon-Text, Georgia, ui-serif, serif;
-		}
-
-		.mono {
-			font-family: iawriter-mono, Nitti, Menlo, Courier, monospace;
-		}
-
-		.pdf .sans {
-			font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP';
-		}
-
-		.pdf:lang(zh-CN) .sans {
-			font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC';
-		}
-
-		.pdf:lang(zh-TW) .sans {
-			font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC';
-		}
-
-		.pdf:lang(ko-KR) .sans {
-			font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR';
-		}
-
-		.pdf .code {
-			font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP';
-		}
-
-		.pdf:lang(zh-CN) .code {
-			font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC';
-		}
-
-		.pdf:lang(zh-TW) .code {
-			font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC';
-		}
-
-		.pdf:lang(ko-KR) .code {
-			font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR';
-		}
-
-		.pdf .serif {
-			font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP';
-		}
-
-		.pdf:lang(zh-CN) .serif {
-			font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC';
-		}
-
-		.pdf:lang(zh-TW) .serif {
-			font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC';
-		}
-
-		.pdf:lang(ko-KR) .serif {
-			font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR';
-		}
-
-		.pdf .mono {
-			font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP';
-		}
-
-		.pdf:lang(zh-CN) .mono {
-			font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC';
-		}
-
-		.pdf:lang(zh-TW) .mono {
-			font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC';
-		}
-
-		.pdf:lang(ko-KR) .mono {
-			font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR';
-		}
-
-		.highlight-default {
-			color: rgba(44, 44, 43, 1);
-		}
-
-		.highlight-gray {
-			color: rgba(125, 122, 117, 1);
-			fill: rgba(125, 122, 117, 1);
-		}
-
-		.highlight-brown {
-			color: rgba(159, 118, 90, 1);
-			fill: rgba(159, 118, 90, 1);
-		}
-
-		.highlight-orange {
-			color: rgba(210, 123, 45, 1);
-			fill: rgba(210, 123, 45, 1);
-		}
-
-		.highlight-yellow {
-			color: rgba(203, 148, 52, 1);
-			fill: rgba(203, 148, 52, 1);
-		}
-
-		.highlight-teal {
-			color: rgba(80, 148, 110, 1);
-			fill: rgba(80, 148, 110, 1);
-		}
-
-		.highlight-blue {
-			color: rgba(56, 125, 201, 1);
-			fill: rgba(56, 125, 201, 1);
-		}
-
-		.highlight-purple {
-			color: rgba(154, 107, 180, 1);
-			fill: rgba(154, 107, 180, 1);
-		}
-
-		.highlight-pink {
-			color: rgba(193, 76, 138, 1);
-			fill: rgba(193, 76, 138, 1);
-		}
-
-		.highlight-red {
-			color: rgba(207, 81, 72, 1);
-			fill: rgba(207, 81, 72, 1);
-		}
-
-		.highlight-default_background {
-			color: rgba(44, 44, 43, 1);
-		}
-
-		.highlight-gray_background {
-			background: rgba(42, 28, 0, 0.07);
-		}
-
-		.highlight-brown_background {
-			background: rgba(139, 46, 0, 0.086);
-		}
-
-		.highlight-orange_background {
-			background: rgba(224, 101, 1, 0.129);
-		}
-
-		.highlight-yellow_background {
-			background: rgba(211, 168, 0, 0.137);
-		}
-
-		.highlight-teal_background {
-			background: rgba(0, 100, 45, 0.09);
-		}
-
-		.highlight-blue_background {
-			background: rgba(0, 124, 215, 0.094);
-		}
-
-		.highlight-purple_background {
-			background: rgba(102, 0, 178, 0.078);
-		}
-
-		.highlight-pink_background {
-			background: rgba(197, 0, 93, 0.086);
-		}
-
-		.highlight-red_background {
-			background: rgba(223, 22, 0, 0.094);
-		}
-
-		.block-color-default {
-			color: inherit;
-			fill: inherit;
-		}
-
-		.block-color-gray {
-			color: rgba(125, 122, 117, 1);
-			fill: rgba(125, 122, 117, 1);
-		}
-
-		.block-color-brown {
-			color: rgba(159, 118, 90, 1);
-			fill: rgba(159, 118, 90, 1);
-		}
-
-		.block-color-orange {
-			color: rgba(210, 123, 45, 1);
-			fill: rgba(210, 123, 45, 1);
-		}
-
-		.block-color-yellow {
-			color: rgba(203, 148, 52, 1);
-			fill: rgba(203, 148, 52, 1);
-		}
-
-		.block-color-teal {
-			color: rgba(80, 148, 110, 1);
-			fill: rgba(80, 148, 110, 1);
-		}
-
-		.block-color-blue {
-			color: rgba(56, 125, 201, 1);
-			fill: rgba(56, 125, 201, 1);
-		}
-
-		.block-color-purple {
-			color: rgba(154, 107, 180, 1);
-			fill: rgba(154, 107, 180, 1);
-		}
-
-		.block-color-pink {
-			color: rgba(193, 76, 138, 1);
-			fill: rgba(193, 76, 138, 1);
-		}
-
-		.block-color-red {
-			color: rgba(207, 81, 72, 1);
-			fill: rgba(207, 81, 72, 1);
-		}
-
-		.block-color-default_background {
-			color: inherit;
-			fill: inherit;
-		}
-
-		.block-color-gray_background {
-			background: rgba(240, 239, 237, 1);
-		}
-
-		.block-color-brown_background {
-			background: rgba(245, 237, 233, 1);
-		}
-
-		.block-color-orange_background {
-			background: rgba(251, 235, 222, 1);
-		}
-
-		.block-color-yellow_background {
-			background: rgba(249, 243, 220, 1);
-		}
-
-		.block-color-teal_background {
-			background: rgba(232, 241, 236, 1);
-		}
-
-		.block-color-blue_background {
-			background: rgba(229, 242, 252, 1);
-		}
-
-		.block-color-purple_background {
-			background: rgba(243, 235, 249, 1);
-		}
-
-		.block-color-pink_background {
-			background: rgba(250, 233, 241, 1);
-		}
-
-		.block-color-red_background {
-			background: rgba(252, 233, 231, 1);
-		}
-
-		.select-value-color-default {
-			background-color: rgba(42, 28, 0, 0.07);
-		}
-
-		.select-value-color-gray {
-			background-color: rgba(28, 19, 1, 0.11);
-		}
-
-		.select-value-color-brown {
-			background-color: rgba(127, 51, 0, 0.156);
-		}
-
-		.select-value-color-orange {
-			background-color: rgba(196, 88, 0, 0.203);
-		}
-
-		.select-value-color-yellow {
-			background-color: rgba(209, 156, 0, 0.282);
-		}
-
-		.select-value-color-green {
-			background-color: rgba(0, 96, 38, 0.156);
-		}
-
-		.select-value-color-blue {
-			background-color: rgba(0, 118, 217, 0.203);
-		}
-
-		.select-value-color-purple {
-			background-color: rgba(92, 0, 163, 0.141);
-		}
-
-		.select-value-color-pink {
-			background-color: rgba(183, 0, 78, 0.152);
-		}
-
-		.select-value-color-red {
-			background-color: rgba(206, 24, 0, 0.164);
-		}
-
-		.checkbox {
-			display: inline-flex;
-			vertical-align: text-bottom;
-			width: 16;
-			height: 16;
-			background-size: 16px;
-			margin-left: 2px;
-			margin-right: 5px;
-		}
-
-		.checkbox-on {
-			background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
-		}
-
-		.checkbox-off {
-			background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
-		}
-	</style>
-</head>
-
-<body>
-	<article id="c86315d5-3b89-8249-830a-81839a4e5336" class="page sans">
-		<header>
-			<h1 class="page-title" dir="auto">ML Proof of Concept</h1>
-			<p class="page-description" dir="auto"></p>
-		</header>
-		<div class="page-body">
-			<div style="display:contents" dir="ltr">
-				<figure id="9c3315d5-3b89-837b-a4e4-8134f143d59e" class="link-to-page"><a
-						href="https://www.notion.so/Syllabus-touchpoints-et-rendus-attendu-9c3315d53b89837ba4e48134f143d59e?pvs=21">Syllabus,
-						touchpoints et rendus attendu</a></figure>
-			</div>
-			<div style="display:contents" dir="auto">
-				<p id="159315d5-3b89-8297-9487-018feda4c4c8" class="">Pour vous aider à bien voir ce qui est attendu de
-					vous à chaque fin de séance, vous pouvez vous référer au github de démonstration suivant : </p>
-			</div>
-			<div style="display:contents" dir="ltr">
-				<figure id="74b315d5-3b89-825b-9d17-818059bbfa51">
-					<div class="source">https://github.com/thom1100/demo-ml-poc-project</div>
-				</figure>
-			</div>
-			<div style="display:contents" dir="auto">
-				<details open="">
-					<summary style="font-weight:600;font-size:1.875em;line-height:1.3;margin:0"><strong>Session
-							1</strong></summary>
-					<div class="indented">
-						<div style="display:contents" dir="auto">
-							<p id="ccd315d5-3b89-838b-927f-0119910a4214" class="">
-							</p>
-						</div>
-						<div style="display:contents" dir="ltr">
-							<figure id="06b315d5-3b89-8306-a81b-8177e6e2d6a5" class="link-to-page"><a
-									href="https://www.notion.so/Objectifs-de-la-s-ance-06b315d53b898306a81b8177e6e2d6a5?pvs=21">Objectifs
-									de la séance</a></figure>
-						</div>
-						<div style="display:contents" dir="auto">
-							<details open="">
-								<summary style="font-weight:600;font-size:1.5em;line-height:1.3;margin:0">To-Do
-								</summary>
-								<div class="indented">
-									<div style="display:contents" dir="auto">
-										<ul id="a59315d5-3b89-82b2-be72-01cb9bc5094a" class="bulleted-list">
-											<li style="list-style-type:disc">Créer sa clé ssh et se connecter à github
-												via son terminal<div style="display:contents" dir="ltr">
-													<figure id="f7d315d5-3b89-828f-8a97-010e4a774e17"
-														class="link-to-page"><a
-															href="https://www.notion.so/Guide-ssh-et-connection-GitHub-f7d315d53b89828f8a97010e4a774e17?pvs=21">Guide
-															ssh et connection à GitHub</a></figure>
-												</div>
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="144315d5-3b89-8222-98db-0184af154c47" class="bulleted-list">
-											<li style="list-style-type:disc">Forker le repo “template”, puis le cloner
-												via ssh sur son ordinateur<div style="display:contents" dir="ltr">
-													<figure id="7a7315d5-3b89-82e9-bc26-81b08a928d4b">
-														<div class="source">https://github.com/thom1100/ml-poc-project
-														</div>
-													</figure>
-												</div>
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="fb6315d5-3b89-83e3-90cf-813a0e418553" class="bulleted-list">
-											<li style="list-style-type:disc">Faire ses premiers commits persos, créer le
-												document
-												<code><a href="http://assignement1.md">assign</a></code><code>ment1.md</code>
-												et choisir un sujet
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="32d315d5-3b89-8332-9ea2-0101784c36b0" class="bulleted-list">
-											<li style="list-style-type:disc">Mettre à jour le fichier students.txt en
-												suivant les instructions du readMe suivant, avec le lien de son repo à
-												côté de son nom<div style="display:contents" dir="auto">
-													<p id="0e6315d5-3b89-82ca-a685-81ccad403630" class=""><a
-															href="https://github.com/thom1100/GitHub_assignement#">https://github.com/thom1100/GitHub_assignement#</a>
-													</p>
-												</div>
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="87a315d5-3b89-8292-9fd0-819cc02e6914" class="bulleted-list">
-											<li style="list-style-type:disc">Eventuellement, créer son environnement
-												virtuel dans son repo avec les commandes suivantes:<div
-													style="display:contents" dir="auto">
-													<script
-														src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"
-														integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg=="
-														crossorigin="anonymous" referrerPolicy="no-referrer"></script>
-													<link rel="stylesheet"
-														href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css"
-														integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ=="
-														crossorigin="anonymous" referrerPolicy="no-referrer" />
-													<script
-														src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"
-														integrity="sha512-whYhDwtTmlC/NpZlCr6PSsAaLOrfjVg/iXAnC4H/dtiHawpShhT2SlIMbpIhT/IL/NrpdMm+Hq2C13+VKpHTYw=="
-														crossorigin="anonymous" referrerPolicy="no-referrer"></script>
-													<pre id="b1e315d5-3b89-82fd-a462-01d6ad375249"
-														class="code code-wrap"><code class="language-bash" style="white-space:pre-wrap;word-break:break-all">python3 -m venv .venv
-source .venv/bin/activate</code></pre>
-												</div>
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="b55315d5-3b89-83b3-948e-01dbaa7750cf" class="bulleted-list">
-											<li style="list-style-type:disc">Dans un deuxième temps, pour updater
-												rapidement le fichier requirements.txt avec toutes les librairies
-												utilisées:<div style="display:contents" dir="auto">
-													<pre id="d53315d5-3b89-8387-804e-01686fc047a8"
-														class="code code-wrap"><code class="language-bash" style="white-space:pre-wrap;word-break:break-all">pip freeze &gt; requirements.txt</code></pre>
-												</div>
-												<div style="display:contents" dir="auto">
-													<p id="3ee315d5-3b89-82cf-b636-8171e0e83519" class="">La prochaine
-														fois que tu actives ton environnement virtuel, tu pourras faire
-														directement : </p>
-												</div>
-												<div style="display:contents" dir="auto">
-													<pre id="2ed315d5-3b89-83fe-935b-819073fb0111"
-														class="code code-wrap"><code class="language-bash" style="white-space:pre-wrap;word-break:break-all">pip install -r requirements.txt</code></pre>
-												</div>
-											</li>
-										</ul>
-									</div>
-								</div>
-							</details>
-						</div>
-						<div style="display:contents" dir="auto">
-							<h1 id="f37315d5-3b89-8367-a245-01d238090ea0" class="">Bash Refreshers</h1>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="8f4315d5-3b89-835b-8d10-81459f0ff76e" class=""><a
-									href="https://www.laulem.com/dev/bash-memo.html">https://www.laulem.com/dev/bash-memo.html</a>
-							</p>
-						</div>
-						<div style="display:contents" dir="auto">
-							<h1 id="395315d5-3b89-82ea-8c0d-01254bc0a030" class="">Ssh </h1>
-						</div>
-						<div style="display:contents" dir="ltr">
-							<figure id="1e2315d5-3b89-83eb-a2a7-01e40e53d21b" class="image"><a
-									href="ML%20Proof%20of%20Concept/image.png"><img style="width:704px"
-										src="ML%20Proof%20of%20Concept/image.png" /></a></figure>
-						</div>
-						<div style="display:contents" dir="ltr">
-							<figure id="780315d5-3b89-829c-99d1-01b9a35c770e" class="image"><a
-									href="ML%20Proof%20of%20Concept/image%201.png"><img style="width:331.9921875px"
-										src="ML%20Proof%20of%20Concept/image%201.png" /></a></figure>
-						</div>
-						<div style="display:contents" dir="auto">
-							<h1 id="318315d5-3b89-83e8-bad0-01c1f357fda8" class="">Git Refreshers</h1>
-						</div>
-						<div style="display:contents" dir="ltr">
-							<figure id="520315d5-3b89-83b8-b5d8-0190da8ded19" class="link-to-page"><a
-									href="https://www.notion.so/Rappels-Git-520315d53b8983b8b5d80190da8ded19?pvs=21">Rappels
-									Git</a></figure>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="71a315d5-3b89-8279-a05e-81869e427a8d" class=""><a
-									href="https://education.github.com/git-cheat-sheet-education.pdf">https://education.github.com/git-cheat-sheet-education.pdf</a>
-							</p>
-						</div>
-						<div style="display:contents" dir="ltr">
-							<figure id="3ea315d5-3b89-82a4-be8e-813d39cc6bc2">
-								<div class="source"><a
-										href="ML%20Proof%20of%20Concept/QCM_-_Git_and_Bash_Refreshers.pdf">QCM - Git and
-										Bash Refreshers.pdf</a></div>
-							</figure>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="6ea315d5-3b89-8353-94cb-011e2bdbf7be" class="">Pour aller plus loin : git cherry
-								pick, git blame, git bisect</p>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="f6c315d5-3b89-831d-8e77-015ef73516ea" class=""><a
-									href="https://git-scm.com/docs/git-bisect/fr">https://git-scm.com/docs/git-bisect/fr</a>
-							</p>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="2ff315d5-3b89-83be-a033-01caecf18f58" class=""><a
-									href="https://git-scm.com/docs/git-cherry-pick">https://git-scm.com/docs/git-cherry-pick</a>
-							</p>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="5e3315d5-3b89-8201-a776-81ef5fd5f067" class=""><a
-									href="https://git-scm.com/docs/git-blame">https://git-scm.com/docs/git-blame</a></p>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="113315d5-3b89-83ec-b44b-0118a3e76786" class="">
-							</p>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="dcb315d5-3b89-8336-b31a-016cb13892e1" class="">
-							</p>
-						</div>
-					</div>
-				</details>
-			</div>
-			<div style="display:contents" dir="auto">
-				<details open="">
-					<summary style="font-weight:600;font-size:1.875em;line-height:1.3;margin:0">Session 2</summary>
-					<div class="indented">
-						<div style="display:contents" dir="auto">
-							<details open="">
-								<summary style="font-weight:600;font-size:1.5em;line-height:1.3;margin:0">To-Do
-								</summary>
-								<div class="indented">
-									<div style="display:contents" dir="auto">
-										<ul id="b4d315d5-3b89-828c-a829-012599e4ab5e" class="bulleted-list">
-											<li style="list-style-type:disc">Choisir et valider une source de données
-												principale pour son projet(Kaggle, OpenML, open data, API, scraping,
-												etc.) - en cas de doute, venir me voir</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="a7a315d5-3b89-8288-9e64-019a07e50842" class="bulleted-list">
-											<li style="list-style-type:disc">Documenter
-												dans <code>assignment1.md</code> :<div style="display:contents"
-													dir="auto">
-													<ul id="b1c315d5-3b89-821e-9548-01c670ea3832" class="bulleted-list">
-														<li style="list-style-type:circle">nom du dataset</li>
-													</ul>
-												</div>
-												<div style="display:contents" dir="auto">
-													<ul id="5b5315d5-3b89-82c8-99f8-81a3a3adece7" class="bulleted-list">
-														<li style="list-style-type:circle">lien et source</li>
-													</ul>
-												</div>
-												<div style="display:contents" dir="auto">
-													<ul id="d67315d5-3b89-8281-9bbb-810786c938fe" class="bulleted-list">
-														<li style="list-style-type:circle">type de données</li>
-													</ul>
-												</div>
-												<div style="display:contents" dir="auto">
-													<ul id="951315d5-3b89-83b7-a0a5-8168e5443a69" class="bulleted-list">
-														<li style="list-style-type:circle">variable cible envisagée</li>
-													</ul>
-												</div>
-												<div style="display:contents" dir="auto">
-													<ul id="221315d5-3b89-8224-a62d-01149f6452c7" class="bulleted-list">
-														<li style="list-style-type:circle">limites éventuelles</li>
-													</ul>
-												</div>
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="1c5315d5-3b89-8368-a4dd-011c67ccf583" class="bulleted-list">
-											<li style="list-style-type:disc">Télécharger ou récupérer les premières
-												données et les ajouter dans le dossier <code>data/</code> du repo<div
-													style="display:contents" dir="auto">
-													<ul id="df1315d5-3b89-8356-bb52-8121f8d28120" class="bulleted-list">
-														<li style="list-style-type:circle">Rajouter <code>data/*</code>
-															dans le .gitignore, juste en dessous de <code>logs/*</code>
-															pour éviter de le push par erreur sur github</li>
-													</ul>
-												</div>
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="0f7315d5-3b89-8211-8f9b-815d6a41f573" class="bulleted-list">
-											<li style="list-style-type:disc">Créer un premier notebook de chargement et
-												d’exploration des données :<div style="display:contents" dir="auto">
-													<ul id="656315d5-3b89-82fd-b680-8128433e171b" class="bulleted-list">
-														<li style="list-style-type:circle">l’enregistrer sous
-															notebooks/data_exploration.ipynb</li>
-													</ul>
-												</div>
-											</li>
-										</ul>
-									</div>
-								</div>
-							</details>
-						</div>
-						<div style="display:contents" dir="auto">
-							<h2 id="115315d5-3b89-839d-b946-81168424b264" class="">Sources pour trouver des bases de
-								données</h2>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="af4315d5-3b89-8219-ab59-018a6d1f4673" class="bulleted-list">
-								<li style="list-style-type:disc">Kaggle - <a
-										href="https://www.kaggle.com/datasets">https://www.kaggle.com/datasets</a></li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="9f6315d5-3b89-8315-a23f-019803122d5f" class="bulleted-list">
-								<li style="list-style-type:disc">GitHub - <a
-										href="https://github.com/xgabora/Club-Football-Match-Data-2000-2025">https://github.com/xgabora/Club-Football-Match-Data-2000-2025</a>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="780315d5-3b89-8226-ade1-0151407262d2" class="bulleted-list">
-								<li style="list-style-type:disc">OpenML - <a
-										href="https://www.openml.org/search?type=data&amp;sort=runs&amp;status=active">https://www.openml.org/search?type=data&amp;sort=runs&amp;status=active</a>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="868315d5-3b89-824b-a203-81b6865eecb3" class="bulleted-list">
-								<li style="list-style-type:disc">UCI - <a
-										href="https://archive.ics.uci.edu/datasets">https://archive.ics.uci.edu/datasets</a>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="22f315d5-3b89-8265-9bc3-81a069fb3880" class="bulleted-list">
-								<li style="list-style-type:disc">open data - <a
-										href="https://open-meteo.com/en/docs/meteofrance-api">https://open-meteo.com/en/docs/meteofrance-api</a>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="530315d5-3b89-82a6-8eba-818273b547e6" class="">Si choix de faire du scraping, se
-								demander si le site concerné l’autorise. </p>
-						</div>
-						<div style="display:contents" dir="auto">
-							<h2 id="347315d5-3b89-8246-b251-8116587f72d9" class="">Outils de scrapping</h2>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="ee0315d5-3b89-83dc-84b4-013e002ee3f8" class="">Pour du scraping basique : </p>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="870315d5-3b89-829c-b33d-0154d565b744" class="bulleted-list">
-								<li style="list-style-type:disc">requests (+ éventuellement bs4) - <a
-										href="https://pypi.org/project/requests/">https://pypi.org/project/requests/</a>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="8c4315d5-3b89-8212-a3c0-01ee0c80a6a1" class="bulleted-list">
-								<li style="list-style-type:disc">httpx - <a
-										href="https://www.python-httpx.org/quickstart/">https://www.python-httpx.org/quickstart/</a>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="b90315d5-3b89-82fe-ac8c-81736aeccf4d" class="bulleted-list">
-								<li style="list-style-type:disc">aiohttp - <a
-										href="https://docs.aiohttp.org/en/stable/">https://docs.aiohttp.org/en/stable/</a>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<p id="671315d5-3b89-83d7-a64d-8190f7c01518" class="">Pour du scraping dynamique (sites
-								internet ou une interaction avec le site est nécessaire, pages qui changent d’un jour à
-								l’autre, etc):</p>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="546315d5-3b89-8382-8360-010cb867d39c" class="bulleted-list">
-								<li style="list-style-type:disc">selenium - <a
-										href="https://selenium-python.readthedocs.io/getting-started.html#example-explained">https://selenium-python.readthedocs.io/getting-started.html#example-explained</a>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="ee6315d5-3b89-8381-b5e4-817855ccb42d" class="bulleted-list">
-								<li style="list-style-type:disc">playwright - <a
-										href="https://playwright.dev/docs/getting-started-vscode">https://playwright.dev/docs/getting-started-vscode</a>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<h2 id="039315d5-3b89-83c4-a58d-01dae2f3facd" class="">Checks à faire sur les datasets
-								utilisés </h2>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="ab2315d5-3b89-829a-8d14-81249b9cf94d" class="bulleted-list">
-								<li style="list-style-type:disc">Vérification du nombre de lignes avec des données
-									manquantes (si possible inférieur à 10%)<div style="display:contents" dir="auto">
-										<p id="feb315d5-3b89-8372-ac00-013a72c3074c" class="">
-											<code>df.isna().sum()<br/>df.isna().mean()</code>
-										</p>
-									</div>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="a7a315d5-3b89-8265-beb0-81e314bdbe83" class="bulleted-list">
-								<li style="list-style-type:disc">Vérification du nombre de données manquantes par
-									feature (supprimer la feature si plus de 5% de valeurs manquantes)</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="5e1315d5-3b89-8301-bd95-811e141ca393" class="bulleted-list">
-								<li style="list-style-type:disc">Identifier les outliers s’il y en a - <a
-										href="https://scikit-learn.org/stable/modules/outlier_detection.html">https://scikit-learn.org/stable/modules/outlier_detection.html</a>
-									<div style="display:contents" dir="auto">
-										<p id="063315d5-3b89-83d8-8319-8132d263069d" class=""><code>df.describe()</code>
-										</p>
-									</div>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="e47315d5-3b89-82f6-b1a0-01a9a756d159" class="bulleted-list">
-								<li style="list-style-type:disc">Repérer les éventuels “features drift” (features
-									binaires qui n’apparaissent qu’au tout début de la série temporelle par ex)<div
-										style="display:contents" dir="auto">
-										<p id="e2a315d5-3b89-8225-bc27-8199fe590020" class="">
-											<code>df_train[&#x27;feature&#x27;].hist()</code>
-										</p>
-									</div>
-								</li>
-							</ul>
-						</div>
-						<div style="display:contents" dir="auto">
-							<ul id="ad6315d5-3b89-8379-8740-0189b100dd7e" class="bulleted-list">
-								<li style="list-style-type:disc">Vérifier, par feature, les class imbalance et
-									comprendre les biais que cela peut engendrer - <a
-										href="https://developers.google.com/machine-learning/crash-course/overfitting/imbalanced-datasets?hl=fr">https://developers.google.com/machine-learning/crash-course/overfitting/imbalanced-datasets?hl=fr</a>
-									<div style="display:contents" dir="auto">
-										<p id="afe315d5-3b89-83ef-871b-81d50fbb2467" class="">
-											<code>df[&#x27;target&#x27;].value_counts(normalize=True)</code>
-										</p>
-									</div>
-									<div style="display:contents" dir="auto">
-										<p id="680315d5-3b89-825f-a70a-0115543ef726" class="">Dans ces cas là, faire
-											attention aux métriques utilisées, principalement pour les problèmes de
-											classification</p>
-									</div>
-								</li>
-							</ul>
-						</div>
-					</div>
-				</details>
-			</div>
-			<div style="display:contents" dir="auto">
-				<details open="">
-					<summary style="font-weight:600;font-size:1.875em;line-height:1.3;margin:0">Session 3</summary>
-					<div class="indented">
-						<div style="display:contents" dir="auto">
-							<details open="">
-								<summary style="font-weight:600;font-size:1.5em;line-height:1.3;margin:0">To-Do
-								</summary>
-								<div class="indented">
-									<div style="display:contents" dir="auto">
-										<h2 id="3e2315d5-3b89-829b-b6c7-81192d277c6d" class="">Faire du feature
-											engineering</h2>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="252315d5-3b89-8282-b1b2-01079e74a908" class="bulleted-list">
-											<li style="list-style-type:disc">PCA - <a
-													href="https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html">https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html</a>
-												<div style="display:contents" dir="auto">
-													<ul id="0a8315d5-3b89-8376-b34d-01371a7e0c53" class="bulleted-list">
-														<li style="list-style-type:circle">attention à bien standardiser
-															les features si vous voulez faire du PCA !!</li>
-													</ul>
-												</div>
-												<div style="display:contents" dir="ltr">
-													<figure id="c41315d5-3b89-8200-a833-018c60239c3c" class="image"><a
-															href="ML%20Proof%20of%20Concept/image%202.png"><img
-																style="width:579.9921875px"
-																src="ML%20Proof%20of%20Concept/image%202.png" /></a>
-													</figure>
-												</div>
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="c2d315d5-3b89-82b9-a92f-01aac3f5149b" class="bulleted-list">
-											<li style="list-style-type:disc">Supprimer les features “inutiles” en
-												comparant les résultats des modèles avec et sans les features concernées
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="a90315d5-3b89-838a-b526-0106345ba1d5" class="bulleted-list">
-											<li style="list-style-type:disc">Ajouter de nouvelles features<div
-													style="display:contents" dir="auto">
-													<ul id="dfe315d5-3b89-8361-b70b-01e30908ae3a" class="bulleted-list">
-														<li style="list-style-type:circle">ex : remplacer la quantité de
-															pluie qui tombe par jour par “journée avec pluie vs sans
-															pluie”</li>
-													</ul>
-												</div>
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="99a315d5-3b89-825d-8924-813ca1a483d1" class="bulleted-list">
-											<li style="list-style-type:disc">Rajouter les features scrappées de la fois
-												précédente en faisant un merge avec le dataset</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<p id="bda315d5-3b89-82bf-bab8-019b3d333be5" class=""><strong>Utilisez
-												skrub</strong> !! <a
-												href="https://skrub-data.org/stable/">https://skrub-data.org/stable/</a>
-										</p>
-									</div>
-									<div style="display:contents" dir="auto">
-										<h2 id="74a315d5-3b89-8343-9b20-0181881c160d" class="">Encodage des features
-										</h2>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="2ff315d5-3b89-83e4-ab31-81618798074a" class="bulleted-list">
-											<li style="list-style-type:disc">Standard Scaling - pour les variables
-												numériques</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="aa1315d5-3b89-82ac-8eda-8170cf900b26" class="bulleted-list">
-											<li style="list-style-type:disc">Ordinal Encoding</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="2ae315d5-3b89-83b7-922f-817aeb8c78ea" class="bulleted-list">
-											<li style="list-style-type:disc">One-Hot Encoding</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="6ff315d5-3b89-82e4-8fce-8136f914fea0" class="bulleted-list">
-											<li style="list-style-type:disc">Target Encoding (attention au data leakage)
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<h2 id="a5a315d5-3b89-82e1-9cba-0187916a94e5" class="">Faire le train/test split
-											et le chargement des data</h2>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="efe315d5-3b89-8392-9890-81ecbd4a190e" class="bulleted-list">
-											<li style="list-style-type:disc">Mettre à jour le fichier data.py<div
-													style="display:contents" dir="auto">
-													<ul id="33f315d5-3b89-822f-9933-015c5ed1b20f" class="bulleted-list">
-														<li style="list-style-type:circle">au besoin, créer également un
-															fichier <a href="http://features.py">features.py</a> pour
-															faciliter la transformation de votre dataset</li>
-													</ul>
-												</div>
-												<div style="display:contents" dir="auto">
-													<ul id="587315d5-3b89-8244-8ca1-81fdf40f2b8d" class="bulleted-list">
-														<li style="list-style-type:circle">attention, toutes les
-															transformations que vous faites pour le train dataset
-															doivent aussi être faites pour le test dataset !!</li>
-													</ul>
-												</div>
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<h2 id="d0b315d5-3b89-82a1-8a5f-8152057f510f" class="">Finaliser l’EDA </h2>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="fd8315d5-3b89-8255-bda7-81d1c355cc2e" class="bulleted-list">
-											<li style="list-style-type:disc">Finir d’identifier les outliers et les
-												données manquantes</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="145315d5-3b89-8388-bfe2-813addc355cf" class="bulleted-list">
-											<li style="list-style-type:disc">Utiliser les librairies
-												seaborn/plotly/matplotlib pour visualiser vos données</li>
-										</ul>
-									</div>
-								</div>
-							</details>
-						</div>
-						<div style="display:contents" dir="auto">
-							<details open="">
-								<summary style="font-weight:600;font-size:1.25em;line-height:1.3;margin:0">(Optional)
-									To-Do</summary>
-								<div class="indented">
-									<div style="display:contents" dir="auto">
-										<ul id="24e315d5-3b89-8345-98be-0130e1a53ccb" class="bulleted-list">
-											<li style="list-style-type:disc">Mettre en place un ml-flow pour suivre et
-												tester les différents modèles et choix de datasets - <a
-													href="https://mlflow.org/docs/latest/ml/getting-started/quickstart/">https://mlflow.org/docs/latest/ml/getting-started/quickstart/</a>
-											</li>
-										</ul>
-									</div>
-									<div style="display:contents" dir="auto">
-										<ul id="194315d5-3b89-82fc-bbd1-81f67b2cbae2" class="bulleted-list">
-											<li style="list-style-type:disc">Mettre en place un optuna pour optimiser
-												les paramètres de son modèle - <a
-													href="https://optuna.org/#code_examples">https://optuna.org/#code_examples</a>
-											</li>
-										</ul>
-									</div>
-								</div>
-							</details>
-						</div>
-					</div>
-				</details>
-			</div>
-			<div style="display:contents" dir="auto">
-				<p id="266315d5-3b89-824d-be85-01951c8ee774" class="">
-				</p>
-			</div>
-		</div>
-	</article><span class="sans" style="font-size:14px;padding-top:2em"></span>
-</body>
-
-</html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>ML Proof of Concept</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+/* Override strong tags inside headings to maintain consistent weight */
+h1 strong,
+h2 strong,
+h3 strong {
+	font-weight: 600;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 10px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+
+	table.collection-content {
+		width: 100%;
+		table-layout: fixed;
+	}
+
+	table.collection-content th,
+	table.collection-content td {
+		overflow-wrap: anywhere;
+	}
+
+	table.collection-content td > .user,
+	table.collection-content td > time {
+		white-space: pre-wrap;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content-wrapper {
+	overflow-x: auto;
+}
+
+@media only print {
+	.collection-content-wrapper {
+		overflow-x: visible;
+	}
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.collection-content td {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.column-list {
+	display: flex;
+	gap: 46px;
+}
+
+.column {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.column > *:first-child {
+	margin-top: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+table {
+	border-collapse: collapse;
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol.numbered-list.numbered-list-digits-2 {
+	padding-inline-start: 2em;
+}
+
+ol.numbered-list.numbered-list-digits-3plus {
+	padding-inline-start: 2.4em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.callout img.notion-static-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.callout p {
+	margin: 0;
+}
+
+.callout h1,
+.callout h2,
+.callout h3 {
+	margin: 0 0 0.6rem;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+blockquote.quote-large {
+	font-size: 1.25em;
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.highlight-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.highlight-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.highlight-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.highlight-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.highlight-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.highlight-default_background {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray_background {
+	background: rgba(42, 28, 0, 0.07);
+}
+.highlight-brown_background {
+	background: rgba(139, 46, 0, 0.086);
+}
+.highlight-orange_background {
+	background: rgba(224, 101, 1, 0.129);
+}
+.highlight-yellow_background {
+	background: rgba(211, 168, 0, 0.137);
+}
+.highlight-teal_background {
+	background: rgba(0, 100, 45, 0.09);
+}
+.highlight-blue_background {
+	background: rgba(0, 124, 215, 0.094);
+}
+.highlight-purple_background {
+	background: rgba(102, 0, 178, 0.078);
+}
+.highlight-pink_background {
+	background: rgba(197, 0, 93, 0.086);
+}
+.highlight-red_background {
+	background: rgba(223, 22, 0, 0.094);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.block-color-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.block-color-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.block-color-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.block-color-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.block-color-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(240, 239, 237, 1);
+}
+.block-color-brown_background {
+	background: rgba(245, 237, 233, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 235, 222, 1);
+}
+.block-color-yellow_background {
+	background: rgba(249, 243, 220, 1);
+}
+.block-color-teal_background {
+	background: rgba(232, 241, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(229, 242, 252, 1);
+}
+.block-color-purple_background {
+	background: rgba(243, 235, 249, 1);
+}
+.block-color-pink_background {
+	background: rgba(250, 233, 241, 1);
+}
+.block-color-red_background {
+	background: rgba(252, 233, 231, 1);
+}
+.select-value-color-default { background-color: rgba(42, 28, 0, 0.07); }
+.select-value-color-gray { background-color: rgba(28, 19, 1, 0.11); }
+.select-value-color-brown { background-color: rgba(127, 51, 0, 0.156); }
+.select-value-color-orange { background-color: rgba(196, 88, 0, 0.203); }
+.select-value-color-yellow { background-color: rgba(209, 156, 0, 0.282); }
+.select-value-color-green { background-color: rgba(0, 96, 38, 0.156); }
+.select-value-color-blue { background-color: rgba(0, 118, 217, 0.203); }
+.select-value-color-purple { background-color: rgba(92, 0, 163, 0.141); }
+.select-value-color-pink { background-color: rgba(183, 0, 78, 0.152); }
+.select-value-color-red { background-color: rgba(206, 24, 0, 0.164); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="c86315d5-3b89-8249-830a-81839a4e5336" class="page sans"><header><h1 class="page-title" dir="auto">ML Proof of Concept</h1><p class="page-description" dir="auto"></p></header><div class="page-body"><div style="display:contents" dir="ltr"><figure id="9c3315d5-3b89-837b-a4e4-8134f143d59e" class="link-to-page"><a href="https://www.notion.so/Syllabus-touchpoints-et-rendus-attendu-9c3315d53b89837ba4e48134f143d59e?pvs=21">Syllabus, touchpoints et rendus attendu</a></figure></div><div style="display:contents" dir="auto"><p id="159315d5-3b89-8297-9487-018feda4c4c8" class="">Pour vous aider à bien voir ce qui est attendu de vous à chaque fin de séance, vous pouvez vous référer au github de démonstration suivant : </p></div><div style="display:contents" dir="ltr"><figure id="74b315d5-3b89-825b-9d17-818059bbfa51"><div class="source">https://github.com/thom1100/demo-ml-poc-project</div></figure></div><div style="display:contents" dir="auto"><details open=""><summary style="font-weight:600;font-size:1.875em;line-height:1.3;margin:0"><strong>Session 1</strong></summary><div class="indented"><div style="display:contents" dir="auto"><p id="ccd315d5-3b89-838b-927f-0119910a4214" class="">
+</p></div><div style="display:contents" dir="ltr"><figure id="06b315d5-3b89-8306-a81b-8177e6e2d6a5" class="link-to-page"><a href="https://www.notion.so/Objectifs-de-la-s-ance-06b315d53b898306a81b8177e6e2d6a5?pvs=21">Objectifs de la séance</a></figure></div><div style="display:contents" dir="auto"><details open=""><summary style="font-weight:600;font-size:1.5em;line-height:1.3;margin:0">To-Do</summary><div class="indented"><div style="display:contents" dir="auto"><ul id="a59315d5-3b89-82b2-be72-01cb9bc5094a" class="bulleted-list"><li style="list-style-type:disc">Créer sa clé ssh et se connecter à github via son terminal<div style="display:contents" dir="ltr"><figure id="f7d315d5-3b89-828f-8a97-010e4a774e17" class="link-to-page"><a href="https://www.notion.so/Guide-ssh-et-connection-GitHub-f7d315d53b89828f8a97010e4a774e17?pvs=21">Guide ssh et connection à GitHub</a></figure></div></li></ul></div><div style="display:contents" dir="auto"><ul id="144315d5-3b89-8222-98db-0184af154c47" class="bulleted-list"><li style="list-style-type:disc">Forker le repo “template”, puis le cloner via ssh sur son ordinateur<div style="display:contents" dir="ltr"><figure id="7a7315d5-3b89-82e9-bc26-81b08a928d4b"><div class="source">https://github.com/thom1100/ml-poc-project</div></figure></div></li></ul></div><div style="display:contents" dir="auto"><ul id="fb6315d5-3b89-83e3-90cf-813a0e418553" class="bulleted-list"><li style="list-style-type:disc">Faire ses premiers commits persos, créer le document <code><a href="http://assignement1.md">assign</a></code><code>ment1.md</code> et choisir un sujet</li></ul></div><div style="display:contents" dir="auto"><ul id="32d315d5-3b89-8332-9ea2-0101784c36b0" class="bulleted-list"><li style="list-style-type:disc">Mettre à jour le fichier students.txt en suivant les instructions du readMe suivant, avec le lien de son repo à côté de son nom<div style="display:contents" dir="auto"><p id="0e6315d5-3b89-82ca-a685-81ccad403630" class=""><a href="https://github.com/thom1100/GitHub_assignement#">https://github.com/thom1100/GitHub_assignement#</a></p></div></li></ul></div><div style="display:contents" dir="auto"><ul id="87a315d5-3b89-8292-9fd0-819cc02e6914" class="bulleted-list"><li style="list-style-type:disc">Eventuellement, créer son environnement virtuel dans son repo avec les commandes suivantes:<div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js" integrity="sha512-whYhDwtTmlC/NpZlCr6PSsAaLOrfjVg/iXAnC4H/dtiHawpShhT2SlIMbpIhT/IL/NrpdMm+Hq2C13+VKpHTYw==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><pre id="b1e315d5-3b89-82fd-a462-01d6ad375249" class="code code-wrap"><code class="language-bash" style="white-space:pre-wrap;word-break:break-all">python3 -m venv .venv
+source .venv/bin/activate</code></pre></div></li></ul></div><div style="display:contents" dir="auto"><ul id="b55315d5-3b89-83b3-948e-01dbaa7750cf" class="bulleted-list"><li style="list-style-type:disc">Dans un deuxième temps, pour updater rapidement le fichier requirements.txt avec toutes les librairies utilisées:<div style="display:contents" dir="auto"><pre id="d53315d5-3b89-8387-804e-01686fc047a8" class="code code-wrap"><code class="language-bash" style="white-space:pre-wrap;word-break:break-all">pip freeze &gt; requirements.txt</code></pre></div><div style="display:contents" dir="auto"><p id="3ee315d5-3b89-82cf-b636-8171e0e83519" class="">La prochaine fois que tu actives ton environnement virtuel, tu pourras faire directement : </p></div><div style="display:contents" dir="auto"><pre id="2ed315d5-3b89-83fe-935b-819073fb0111" class="code code-wrap"><code class="language-bash" style="white-space:pre-wrap;word-break:break-all">pip install -r requirements.txt</code></pre></div></li></ul></div></div></details></div><div style="display:contents" dir="auto"><h1 id="f37315d5-3b89-8367-a245-01d238090ea0" class="">Bash Refreshers</h1></div><div style="display:contents" dir="auto"><p id="8f4315d5-3b89-835b-8d10-81459f0ff76e" class=""><a href="https://www.laulem.com/dev/bash-memo.html">https://www.laulem.com/dev/bash-memo.html</a></p></div><div style="display:contents" dir="auto"><h1 id="395315d5-3b89-82ea-8c0d-01254bc0a030" class="">Ssh </h1></div><div style="display:contents" dir="ltr"><figure id="1e2315d5-3b89-83eb-a2a7-01e40e53d21b" class="image"><a href="ML%20Proof%20of%20Concept/image.png"><img style="width:704px" src="ML%20Proof%20of%20Concept/image.png"/></a></figure></div><div style="display:contents" dir="ltr"><figure id="780315d5-3b89-829c-99d1-01b9a35c770e" class="image"><a href="ML%20Proof%20of%20Concept/image%201.png"><img style="width:331.9921875px" src="ML%20Proof%20of%20Concept/image%201.png"/></a></figure></div><div style="display:contents" dir="auto"><h1 id="318315d5-3b89-83e8-bad0-01c1f357fda8" class="">Git Refreshers</h1></div><div style="display:contents" dir="ltr"><figure id="520315d5-3b89-83b8-b5d8-0190da8ded19" class="link-to-page"><a href="https://www.notion.so/Rappels-Git-520315d53b8983b8b5d80190da8ded19?pvs=21">Rappels Git</a></figure></div><div style="display:contents" dir="auto"><p id="71a315d5-3b89-8279-a05e-81869e427a8d" class=""><a href="https://education.github.com/git-cheat-sheet-education.pdf">https://education.github.com/git-cheat-sheet-education.pdf</a></p></div><div style="display:contents" dir="ltr"><figure id="3ea315d5-3b89-82a4-be8e-813d39cc6bc2"><div class="source"><a href="ML%20Proof%20of%20Concept/QCM_-_Git_and_Bash_Refreshers.pdf">QCM - Git and Bash Refreshers.pdf</a></div></figure></div><div style="display:contents" dir="auto"><p id="6ea315d5-3b89-8353-94cb-011e2bdbf7be" class="">Pour aller plus loin : git cherry pick, git blame, git bisect</p></div><div style="display:contents" dir="auto"><p id="f6c315d5-3b89-831d-8e77-015ef73516ea" class=""><a href="https://git-scm.com/docs/git-bisect/fr">https://git-scm.com/docs/git-bisect/fr</a></p></div><div style="display:contents" dir="auto"><p id="2ff315d5-3b89-83be-a033-01caecf18f58" class=""><a href="https://git-scm.com/docs/git-cherry-pick">https://git-scm.com/docs/git-cherry-pick</a></p></div><div style="display:contents" dir="auto"><p id="5e3315d5-3b89-8201-a776-81ef5fd5f067" class=""><a href="https://git-scm.com/docs/git-blame">https://git-scm.com/docs/git-blame</a></p></div><div style="display:contents" dir="auto"><p id="113315d5-3b89-83ec-b44b-0118a3e76786" class="">
+</p></div><div style="display:contents" dir="auto"><p id="dcb315d5-3b89-8336-b31a-016cb13892e1" class="">
+</p></div></div></details></div><div style="display:contents" dir="auto"><details open=""><summary style="font-weight:600;font-size:1.875em;line-height:1.3;margin:0">Session 2</summary><div class="indented"><div style="display:contents" dir="auto"><details open=""><summary style="font-weight:600;font-size:1.5em;line-height:1.3;margin:0">To-Do</summary><div class="indented"><div style="display:contents" dir="auto"><ul id="b4d315d5-3b89-828c-a829-012599e4ab5e" class="bulleted-list"><li style="list-style-type:disc">Choisir et valider une source de données principale pour son projet(Kaggle, OpenML, open data, API, scraping, etc.) - en cas de doute, venir me voir</li></ul></div><div style="display:contents" dir="auto"><ul id="a7a315d5-3b89-8288-9e64-019a07e50842" class="bulleted-list"><li style="list-style-type:disc">Documenter dans <code>assignment1.md</code> :<div style="display:contents" dir="auto"><ul id="b1c315d5-3b89-821e-9548-01c670ea3832" class="bulleted-list"><li style="list-style-type:circle">nom du dataset</li></ul></div><div style="display:contents" dir="auto"><ul id="5b5315d5-3b89-82c8-99f8-81a3a3adece7" class="bulleted-list"><li style="list-style-type:circle">lien et source</li></ul></div><div style="display:contents" dir="auto"><ul id="d67315d5-3b89-8281-9bbb-810786c938fe" class="bulleted-list"><li style="list-style-type:circle">type de données</li></ul></div><div style="display:contents" dir="auto"><ul id="951315d5-3b89-83b7-a0a5-8168e5443a69" class="bulleted-list"><li style="list-style-type:circle">variable cible envisagée</li></ul></div><div style="display:contents" dir="auto"><ul id="221315d5-3b89-8224-a62d-01149f6452c7" class="bulleted-list"><li style="list-style-type:circle">limites éventuelles</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="1c5315d5-3b89-8368-a4dd-011c67ccf583" class="bulleted-list"><li style="list-style-type:disc">Télécharger ou récupérer les premières données et les ajouter dans le dossier <code>data/</code> du repo<div style="display:contents" dir="auto"><ul id="df1315d5-3b89-8356-bb52-8121f8d28120" class="bulleted-list"><li style="list-style-type:circle">Rajouter <code>data/*</code> dans le .gitignore, juste en dessous de <code>logs/*</code> pour éviter de le push par erreur sur github</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="0f7315d5-3b89-8211-8f9b-815d6a41f573" class="bulleted-list"><li style="list-style-type:disc">Créer un premier notebook de chargement et d’exploration des données :<div style="display:contents" dir="auto"><ul id="656315d5-3b89-82fd-b680-8128433e171b" class="bulleted-list"><li style="list-style-type:circle">l’enregistrer sous notebooks/data_exploration.ipynb</li></ul></div></li></ul></div></div></details></div><div style="display:contents" dir="auto"><h2 id="115315d5-3b89-839d-b946-81168424b264" class="">Sources pour trouver des bases de données</h2></div><div style="display:contents" dir="auto"><ul id="af4315d5-3b89-8219-ab59-018a6d1f4673" class="bulleted-list"><li style="list-style-type:disc">Kaggle - <a href="https://www.kaggle.com/datasets">https://www.kaggle.com/datasets</a></li></ul></div><div style="display:contents" dir="auto"><ul id="9f6315d5-3b89-8315-a23f-019803122d5f" class="bulleted-list"><li style="list-style-type:disc">GitHub - <a href="https://github.com/xgabora/Club-Football-Match-Data-2000-2025">https://github.com/xgabora/Club-Football-Match-Data-2000-2025</a></li></ul></div><div style="display:contents" dir="auto"><ul id="780315d5-3b89-8226-ade1-0151407262d2" class="bulleted-list"><li style="list-style-type:disc">OpenML - <a href="https://www.openml.org/search?type=data&amp;sort=runs&amp;status=active">https://www.openml.org/search?type=data&amp;sort=runs&amp;status=active</a></li></ul></div><div style="display:contents" dir="auto"><ul id="868315d5-3b89-824b-a203-81b6865eecb3" class="bulleted-list"><li style="list-style-type:disc">UCI - <a href="https://archive.ics.uci.edu/datasets">https://archive.ics.uci.edu/datasets</a></li></ul></div><div style="display:contents" dir="auto"><ul id="22f315d5-3b89-8265-9bc3-81a069fb3880" class="bulleted-list"><li style="list-style-type:disc">open data - <a href="https://open-meteo.com/en/docs/meteofrance-api">https://open-meteo.com/en/docs/meteofrance-api</a></li></ul></div><div style="display:contents" dir="auto"><p id="530315d5-3b89-82a6-8eba-818273b547e6" class="">Si choix de faire du scraping, se demander si le site concerné l’autorise. </p></div><div style="display:contents" dir="auto"><h2 id="347315d5-3b89-8246-b251-8116587f72d9" class="">Outils de scrapping</h2></div><div style="display:contents" dir="auto"><p id="ee0315d5-3b89-83dc-84b4-013e002ee3f8" class="">Pour du scraping basique : </p></div><div style="display:contents" dir="auto"><ul id="870315d5-3b89-829c-b33d-0154d565b744" class="bulleted-list"><li style="list-style-type:disc">requests (+ éventuellement bs4) - <a href="https://pypi.org/project/requests/">https://pypi.org/project/requests/</a></li></ul></div><div style="display:contents" dir="auto"><ul id="8c4315d5-3b89-8212-a3c0-01ee0c80a6a1" class="bulleted-list"><li style="list-style-type:disc">httpx - <a href="https://www.python-httpx.org/quickstart/">https://www.python-httpx.org/quickstart/</a></li></ul></div><div style="display:contents" dir="auto"><ul id="b90315d5-3b89-82fe-ac8c-81736aeccf4d" class="bulleted-list"><li style="list-style-type:disc">aiohttp - <a href="https://docs.aiohttp.org/en/stable/">https://docs.aiohttp.org/en/stable/</a></li></ul></div><div style="display:contents" dir="auto"><p id="671315d5-3b89-83d7-a64d-8190f7c01518" class="">Pour du scraping dynamique (sites internet ou une interaction avec le site est nécessaire, pages qui changent d’un jour à l’autre, etc):</p></div><div style="display:contents" dir="auto"><ul id="546315d5-3b89-8382-8360-010cb867d39c" class="bulleted-list"><li style="list-style-type:disc">selenium - <a href="https://selenium-python.readthedocs.io/getting-started.html#example-explained">https://selenium-python.readthedocs.io/getting-started.html#example-explained</a></li></ul></div><div style="display:contents" dir="auto"><ul id="ee6315d5-3b89-8381-b5e4-817855ccb42d" class="bulleted-list"><li style="list-style-type:disc">playwright - <a href="https://playwright.dev/docs/getting-started-vscode">https://playwright.dev/docs/getting-started-vscode</a></li></ul></div><div style="display:contents" dir="auto"><h2 id="039315d5-3b89-83c4-a58d-01dae2f3facd" class="">Checks à faire sur les datasets utilisés </h2></div><div style="display:contents" dir="auto"><ul id="ab2315d5-3b89-829a-8d14-81249b9cf94d" class="bulleted-list"><li style="list-style-type:disc">Vérification du nombre de lignes avec des données manquantes (si possible inférieur à 10%)<div style="display:contents" dir="auto"><p id="feb315d5-3b89-8372-ac00-013a72c3074c" class=""><code>df.isna().sum()<br/>df.isna().mean()</code></p></div></li></ul></div><div style="display:contents" dir="auto"><ul id="a7a315d5-3b89-8265-beb0-81e314bdbe83" class="bulleted-list"><li style="list-style-type:disc">Vérification du nombre de données manquantes par feature (supprimer la feature si plus de 5% de valeurs manquantes)</li></ul></div><div style="display:contents" dir="auto"><ul id="5e1315d5-3b89-8301-bd95-811e141ca393" class="bulleted-list"><li style="list-style-type:disc">Identifier les outliers s’il y en a - <a href="https://scikit-learn.org/stable/modules/outlier_detection.html">https://scikit-learn.org/stable/modules/outlier_detection.html</a><div style="display:contents" dir="auto"><p id="063315d5-3b89-83d8-8319-8132d263069d" class=""><code>df.describe()</code></p></div></li></ul></div><div style="display:contents" dir="auto"><ul id="e47315d5-3b89-82f6-b1a0-01a9a756d159" class="bulleted-list"><li style="list-style-type:disc">Repérer les éventuels “features drift” (features binaires qui n’apparaissent qu’au tout début de la série temporelle par ex)<div style="display:contents" dir="auto"><p id="e2a315d5-3b89-8225-bc27-8199fe590020" class=""><code>df_train[&#x27;feature&#x27;].hist()</code></p></div></li></ul></div><div style="display:contents" dir="auto"><ul id="ad6315d5-3b89-8379-8740-0189b100dd7e" class="bulleted-list"><li style="list-style-type:disc">Vérifier, par feature, les class imbalance et comprendre les biais que cela peut engendrer - <a href="https://developers.google.com/machine-learning/crash-course/overfitting/imbalanced-datasets?hl=fr">https://developers.google.com/machine-learning/crash-course/overfitting/imbalanced-datasets?hl=fr</a><div style="display:contents" dir="auto"><p id="afe315d5-3b89-83ef-871b-81d50fbb2467" class=""><code>df[&#x27;target&#x27;].value_counts(normalize=True)</code></p></div><div style="display:contents" dir="auto"><p id="680315d5-3b89-825f-a70a-0115543ef726" class="">Dans ces cas là, faire attention aux métriques utilisées, principalement pour les problèmes de classification</p></div></li></ul></div></div></details></div><div style="display:contents" dir="auto"><details open=""><summary style="font-weight:600;font-size:1.875em;line-height:1.3;margin:0">Session 3</summary><div class="indented"><div style="display:contents" dir="auto"><details open=""><summary style="font-weight:600;font-size:1.5em;line-height:1.3;margin:0">To-Do</summary><div class="indented"><div style="display:contents" dir="auto"><h2 id="3e2315d5-3b89-829b-b6c7-81192d277c6d" class="">Faire du feature engineering</h2></div><div style="display:contents" dir="auto"><ul id="252315d5-3b89-8282-b1b2-01079e74a908" class="bulleted-list"><li style="list-style-type:disc">PCA - <a href="https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html">https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html</a><div style="display:contents" dir="auto"><ul id="0a8315d5-3b89-8376-b34d-01371a7e0c53" class="bulleted-list"><li style="list-style-type:circle">attention à bien standardiser les features si vous voulez faire du PCA !!</li></ul></div><div style="display:contents" dir="ltr"><figure id="c41315d5-3b89-8200-a833-018c60239c3c" class="image"><a href="ML%20Proof%20of%20Concept/image%202.png"><img style="width:579.9921875px" src="ML%20Proof%20of%20Concept/image%202.png"/></a></figure></div></li></ul></div><div style="display:contents" dir="auto"><ul id="c2d315d5-3b89-82b9-a92f-01aac3f5149b" class="bulleted-list"><li style="list-style-type:disc">Supprimer les features “inutiles” en comparant les résultats des modèles avec et sans les features concernées</li></ul></div><div style="display:contents" dir="auto"><ul id="a90315d5-3b89-838a-b526-0106345ba1d5" class="bulleted-list"><li style="list-style-type:disc">Ajouter de nouvelles features<div style="display:contents" dir="auto"><ul id="dfe315d5-3b89-8361-b70b-01e30908ae3a" class="bulleted-list"><li style="list-style-type:circle">ex : remplacer la quantité de pluie qui tombe par jour par “journée avec pluie vs sans pluie”</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="99a315d5-3b89-825d-8924-813ca1a483d1" class="bulleted-list"><li style="list-style-type:disc">Rajouter les features scrappées de la fois précédente en faisant un merge avec le dataset</li></ul></div><div style="display:contents" dir="auto"><p id="bda315d5-3b89-82bf-bab8-019b3d333be5" class=""><strong>Utilisez skrub</strong> !! <a href="https://skrub-data.org/stable/">https://skrub-data.org/stable/</a></p></div><div style="display:contents" dir="auto"><h2 id="74a315d5-3b89-8343-9b20-0181881c160d" class="">Encodage des features</h2></div><div style="display:contents" dir="auto"><ul id="2ff315d5-3b89-83e4-ab31-81618798074a" class="bulleted-list"><li style="list-style-type:disc">Standard Scaling - pour les variables numériques</li></ul></div><div style="display:contents" dir="auto"><ul id="aa1315d5-3b89-82ac-8eda-8170cf900b26" class="bulleted-list"><li style="list-style-type:disc">Ordinal Encoding</li></ul></div><div style="display:contents" dir="auto"><ul id="2ae315d5-3b89-83b7-922f-817aeb8c78ea" class="bulleted-list"><li style="list-style-type:disc">One-Hot Encoding</li></ul></div><div style="display:contents" dir="auto"><ul id="6ff315d5-3b89-82e4-8fce-8136f914fea0" class="bulleted-list"><li style="list-style-type:disc">Target Encoding (attention au data leakage)</li></ul></div><div style="display:contents" dir="auto"><h2 id="a5a315d5-3b89-82e1-9cba-0187916a94e5" class="">Faire le train/test split et le chargement des data</h2></div><div style="display:contents" dir="auto"><ul id="efe315d5-3b89-8392-9890-81ecbd4a190e" class="bulleted-list"><li style="list-style-type:disc">Mettre à jour le fichier data.py<div style="display:contents" dir="auto"><ul id="33f315d5-3b89-822f-9933-015c5ed1b20f" class="bulleted-list"><li style="list-style-type:circle">au besoin, créer également un fichier <a href="http://features.py">features.py</a> pour faciliter la transformation de votre dataset</li></ul></div><div style="display:contents" dir="auto"><ul id="587315d5-3b89-8244-8ca1-81fdf40f2b8d" class="bulleted-list"><li style="list-style-type:circle">attention, toutes les transformations que vous faites pour le train dataset doivent aussi être faites pour le test dataset !!</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><h2 id="d0b315d5-3b89-82a1-8a5f-8152057f510f" class="">Finaliser l’EDA </h2></div><div style="display:contents" dir="auto"><ul id="fd8315d5-3b89-8255-bda7-81d1c355cc2e" class="bulleted-list"><li style="list-style-type:disc">Finir d’identifier les outliers et les données manquantes</li></ul></div><div style="display:contents" dir="auto"><ul id="145315d5-3b89-8388-bfe2-813addc355cf" class="bulleted-list"><li style="list-style-type:disc">Utiliser les librairies seaborn/plotly/matplotlib pour visualiser vos données</li></ul></div></div></details></div><div style="display:contents" dir="auto"><details open=""><summary style="font-weight:600;font-size:1.25em;line-height:1.3;margin:0">(Optional) To-Do</summary><div class="indented"><div style="display:contents" dir="auto"><ul id="24e315d5-3b89-8345-98be-0130e1a53ccb" class="bulleted-list"><li style="list-style-type:disc">Mettre en place un ml-flow pour suivre et tester les différents modèles et choix de datasets - <a href="https://mlflow.org/docs/latest/ml/getting-started/quickstart/">https://mlflow.org/docs/latest/ml/getting-started/quickstart/</a></li></ul></div><div style="display:contents" dir="auto"><ul id="194315d5-3b89-82fc-bbd1-81f67b2cbae2" class="bulleted-list"><li style="list-style-type:disc">Mettre en place un optuna pour optimiser les paramètres de son modèle - <a href="https://optuna.org/#code_examples">https://optuna.org/#code_examples</a></li></ul></div></div></details></div></div></details></div><div style="display:contents" dir="auto"><p id="266315d5-3b89-824d-be85-01951c8ee774" class="">
+</p></div></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>
