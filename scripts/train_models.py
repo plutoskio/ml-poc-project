@@ -16,6 +16,7 @@ if str(SRC_DIR) not in sys.path:
 from config import MODELS, MODELS_DIR, PROCESSED_DATASET_PATH, RESULTS_DIR, RANDOM_STATE  # noqa: E402
 from data import load_dataset_split  # noqa: E402
 from features import save_modeling_dataset  # noqa: E402
+from interpretability import save_feature_importance  # noqa: E402
 from metrics import compute_metrics  # noqa: E402
 from modeling import (  # noqa: E402
     LagBlendRegressor,
@@ -84,6 +85,12 @@ def main() -> None:
     metrics.to_csv(RESULTS_DIR / "model_metrics.csv", index=False)
 
     save_best_model_predictions(
+        metrics=metrics,
+        X_test=X_test,
+        y_test=y_test,
+        random_state=RANDOM_STATE,
+    )
+    save_feature_importance(
         metrics=metrics,
         X_test=X_test,
         y_test=y_test,

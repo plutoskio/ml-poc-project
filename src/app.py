@@ -4,11 +4,52 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from config import PLOTS_DIR, RESULTS_DIR, WALMART_RAW_DIR
+from config import RESULTS_DIR, WALMART_RAW_DIR
+
+
+FEATURE_LABELS = {
+    "store_nbr": "Store",
+    "item_nbr": "Product",
+    "station_nbr": "Weather station",
+    "dayofweek": "Day of week",
+    "dayofmonth": "Day of month",
+    "weekofyear": "Week of year",
+    "is_weekend": "Weekend flag",
+    "is_month_start": "Month-start flag",
+    "is_month_end": "Month-end flag",
+    "days_since_start": "Sales history age",
+    "lag_1": "Previous-day units",
+    "lag_7": "Same weekday last week",
+    "lag_28": "Same weekday four weeks ago",
+    "rolling_mean_7": "7-day average units",
+    "rolling_mean_28": "28-day average units",
+    "rolling_mean_90": "90-day average units",
+    "tmax": "Maximum temperature",
+    "tmin": "Minimum temperature",
+    "tavg": "Average temperature",
+    "dewpoint": "Dew point",
+    "wetbulb": "Wet bulb temperature",
+    "preciptotal": "Precipitation",
+    "stnpressure": "Station pressure",
+    "sealevel": "Sea-level pressure",
+    "resultspeed": "Wind speed",
+    "resultdir": "Wind direction",
+    "avgspeed": "Average wind speed",
+    "has_rain": "Rain flag",
+    "has_snow": "Snow flag",
+    "has_fog": "Fog flag",
+    "has_thunder": "Thunder flag",
+    "has_freezing": "Freezing flag",
+    "weather_event_count": "Weather event count",
+}
 
 
 def _format_units(value: float) -> str:
     return f"{value:,.0f}"
+
+
+def _feature_label(feature: str) -> str:
+    return FEATURE_LABELS.get(feature, feature.replace("_", " ").title())
 
 
 def build_app() -> None:
@@ -40,6 +81,7 @@ def build_app() -> None:
     overview_path = Path(RESULTS_DIR) / "data_overview.csv"
     metrics_path = Path(RESULTS_DIR) / "model_metrics.csv"
     predictions_path = Path(RESULTS_DIR) / "best_model_test_predictions.csv"
+    feature_importance_path = Path(RESULTS_DIR) / "feature_importance.csv"
 
     st.header("Data Coverage")
     if overview_path.exists():
@@ -96,6 +138,43 @@ def build_app() -> None:
             ],
             width="stretch",
         )
+
+        if feature_importance_path.exists():
+            importance = pd.read_csv(feature_importance_path)
+            top_importance = (
+                importance[importance["importance_mae"] > 0]
+                .head(15)
+                .sort_values("importance_mae", ascending=True)
+                .copy()
+            )
+            top_importance["feature_label"] = top_importance["feature"].map(_feature_label)
+            importance_chart = px.bar(
+                top_importance,
+                x="importance_mae",
+                y="feature_label",
+                orientation="h",
+                error_x="importance_mae_std",
+                title="Top forecast drivers: increase in MAE when each feature is shuffled",
+                labels={
+                    "importance_mae": "Increase in MAE",
+                    "feature_label": "",
+                    "importance_mae_std": "Repeated-shuffle variation",
+                },
+            )
+            st.plotly_chart(importance_chart, width="stretch")
+            sample_rows = int(importance["sample_rows"].iloc[0])
+            positive_share = float(importance["positive_sales_share"].iloc[0])
+            st.caption(
+                "Permutation importance is measured on a chronological test sample. "
+                "Higher bars mean the model's error increases more when that input is "
+                f"randomly shuffled. Sample rows: {sample_rows:,}; positive-sales share: "
+                f"{positive_share:.1%}."
+            )
+        else:
+            st.info(
+                "Feature importance will appear after running `python scripts/train_models.py` "
+                "or `python scripts/main.py`."
+            )
 
         if predictions is not None:
             daily = (

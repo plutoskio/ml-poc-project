@@ -18,6 +18,7 @@ load_dotenv(ROOT_DIR / ".env")
 
 from config import MODELS, RESULTS_DIR, STREAMLIT_HOST, STREAMLIT_PORT  # noqa: E402
 from data import load_dataset_split  # noqa: E402
+from interpretability import save_feature_importance  # noqa: E402
 from metrics import compute_metrics  # noqa: E402
 from results import save_best_model_predictions  # noqa: E402
 
@@ -53,6 +54,7 @@ def evaluate_models() -> pd.DataFrame:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     results.to_csv(RESULTS_DIR / "model_metrics.csv", index=False)
     save_best_model_predictions(results, X_test, y_test)
+    save_feature_importance(results, X_test, y_test)
     return results
 
 
