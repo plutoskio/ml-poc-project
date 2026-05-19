@@ -1,238 +1,203 @@
-# ML Project Template
+# Walmart Sales Forecasting ML Proof of Concept
 
-This repository is the base template that each student will fork and adapt for the final machine learning proof-of-concept project.
+This project is a supervised machine learning proof of concept for retail
+demand forecasting. It predicts daily item-level unit sales for Walmart stores
+using historical sales, calendar features, store/item identifiers, and local
+weather observations.
 
-The template already defines the project structure and the main execution workflow. Your job as a student is to plug your own dataset loading logic, trained models, evaluation metrics, and Streamlit presentation into the fixed contracts described below.
+The business goal is inventory planning: better forecasts can help store teams
+anticipate demand, reduce stockouts, avoid excess inventory, and identify the
+store-product combinations that need attention.
+
+## Project Summary
+
+- Problem type: supervised regression
+- Target: `units`, the number of units sold for one store, item, and date
+- Dataset: Walmart Recruiting II: Sales in Stormy Weather
+- Source: Kaggle competition dataset
+- Evaluation split: chronological train/test split
+- Training period: `2012-01-01` to `2014-06-30`
+- Test period: `2014-07-01` to `2014-10-31`
+
+The original Kaggle test file does not include labels, so this project creates
+its own chronological test split from the labeled `train.csv` file. This is more
+realistic than a random split because a forecasting model should train on past
+dates and evaluate on future dates.
+
+## Models
+
+The project compares three supervised models:
+
+- Lag Blend Baseline: transparent benchmark using lag and rolling sales
+  features.
+- Weighted Poisson Regression: count-regression model with categorical
+  encoding, numeric scaling, and sample weights for the zero-heavy target.
+- Histogram Gradient Boosting: nonlinear tabular model trained on engineered
+  sales, calendar, and weather features.
+
+Current best model: Histogram Gradient Boosting.
+
+Current chronological test metrics:
+
+| Model | MAE | RMSE | RMSLE | R2 | Positive-sales MAE | Zero-sales MAE |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Histogram Gradient Boosting | 0.222 | 2.404 | 0.093 | 0.893 | 9.261 | 0.009 |
+| Weighted Poisson Regression | 1.404 | 6.598 | 0.623 | 0.197 | 29.725 | 0.738 |
+| Lag Blend Baseline | 1.238 | 2.960 | 0.694 | 0.838 | 11.086 | 1.006 |
 
 ## Repository Structure
 
-- `deliverables/`: markdown files containing all assignements
-- `deliverables/assignement1.md`: first assignement due (5 in total)
-- `data/`: raw and processed data files
-- `logs/`: log files generated during execution
-- `models/`: trained machine learning models saved to disk
-- `notebooks/`: Jupyter notebooks for analysis and experimentation
-- `plots/`: generated visualizations
-- `results/`: evaluation outputs, including model comparison tables
-- `scripts/`: executable project scripts
-- `scripts/main.py`: main entry point for evaluating models and launching the app
-- `src/`: project source code
-- `src/config.py`: project paths, model registry, and Streamlit configuration
-- `src/data.py`: student-implemented dataset loading function
-- `src/metrics.py`: student-implemented metric computation function
-- `src/app.py`: fixed Streamlit entry point that students must customize
-- `tests/`: optional tests
-- `.env`: environment variables if your project needs them
+```text
+deliverables/       Assignment markdown files
+data/               Local raw and processed data, ignored by Git
+models/             Saved trained models
+notebooks/          Exploratory data analysis notebook
+plots/              Saved static plots
+results/            Metrics, summaries, predictions, feature importance
+scripts/            Pipeline scripts
+src/                Project source code
+tests/              Unit tests
+```
 
-## Expected Workflow
+## How To Get The Data
 
-When you run:
+The data is not supposed to be stored in Git. Download it locally from Kaggle:
+
+```text
+https://www.kaggle.com/c/walmart-recruiting-sales-in-stormy-weather/data
+```
+
+You need a Kaggle account and may need to accept the competition rules before
+the files are available.
+
+### Option 1: Download From The Kaggle Website
+
+1. Open the Kaggle data page:
+
+   ```text
+   https://www.kaggle.com/c/walmart-recruiting-sales-in-stormy-weather/data
+   ```
+
+2. Download the dataset archive.
+
+3. Create this local folder inside the repo:
+
+   ```bash
+   mkdir -p data/raw/walmart-recruiting-sales-in-stormy-weather
+   ```
+
+4. Unzip the downloaded files into:
+
+   ```text
+   data/raw/walmart-recruiting-sales-in-stormy-weather/
+   ```
+
+5. Confirm the folder contains at least:
+
+   ```text
+   train.csv
+   key.csv
+   weather.csv
+   sampleSubmission.csv
+   ```
+
+### Option 2: Download With The Kaggle CLI
+
+Install and configure the Kaggle CLI first:
 
 ```bash
-python scripts/main.py
+pip install kaggle
 ```
 
-the template will do the following:
+Then download the competition files:
 
-1. read the list of trained models from `src/config.py`,
-2. call your dataset loading function from `src/data.py`,
-3. load each serialized model from `models/`,
-4. run predictions on the test split,
-5. call your metric computation function from `src/metrics.py`,
-6. save the results to `results/model_metrics.csv`,
-7. print the metrics in the terminal,
-8. launch the Streamlit app on `localhost`.
-
-## What You Must Update
-
-### 1. Register your trained models in `src/config.py`
-
-Replace the example `MODELS` dictionary with your own trained models.
-
-Each entry must define at least:
-
-- `name`
-- `description`
-- `path`
-
-Example:
-
-```python
-MODELS = {
-    "log_reg": {
-        "name": "Logistic Regression",
-        "description": "Baseline classifier with standardized features.",
-        "path": MODELS_DIR / "log_reg.joblib",
-    },
-    "rf": {
-        "name": "Random Forest",
-        "description": "Tree ensemble tuned on the validation split.",
-        "path": MODELS_DIR / "random_forest.pkl",
-    },
-}
+```bash
+mkdir -p data/raw/walmart-recruiting-sales-in-stormy-weather
+kaggle competitions download \
+  -c walmart-recruiting-sales-in-stormy-weather \
+  -p data/raw/walmart-recruiting-sales-in-stormy-weather
 ```
 
-Supported model formats are:
+Unzip the downloaded archive:
 
-- `.joblib`
-- `.pkl`
-- `.pickle`
-
-Each saved object must expose a `.predict(X)` method.
-
-### 2. Implement the dataset loading function in `src/data.py`
-
-The file already exists and must keep this function name and signature:
-
-```python
-def load_dataset_split() -> tuple[Any, Any, Any, Any]:
+```bash
+unzip data/raw/walmart-recruiting-sales-in-stormy-weather/*.zip \
+  -d data/raw/walmart-recruiting-sales-in-stormy-weather
 ```
 
-It must return:
+## Setup
 
-```python
-(X_train, X_test, y_train, y_test)
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-Constraints:
-
-- `X_train` and `X_test` must be in a format accepted by every model in `MODELS`
-- `y_train` and `y_test` must contain the matching targets
-- `X_test` and `y_test` will be used by `scripts/main.py` for evaluation
-- Typical return types are `pandas.DataFrame`, `pandas.Series`, and/or `numpy.ndarray`
-
-Minimal example:
-
-```python
-import pandas as pd
-from sklearn.model_selection import train_test_split
-
-from config import DATA_DIR
-
-
-def load_dataset_split():
-    df = pd.read_csv(DATA_DIR / "processed_dataset.csv")
-    X = df.drop(columns=["target"])
-    y = df["target"]
-    return train_test_split(X, y, test_size=0.2, random_state=42)
-```
-
-### 3. Implement the metric computation function in `src/metrics.py`
-
-The file already exists and must keep this function name and signature:
-
-```python
-def compute_metrics(y_true: Any, y_pred: Any) -> dict[str, float]:
-```
-
-It must return a dictionary mapping metric names to numeric values.
-
-Example:
-
-```python
-from sklearn.metrics import accuracy_score, f1_score
-
-
-def compute_metrics(y_true, y_pred):
-    return {
-        "accuracy": accuracy_score(y_true, y_pred),
-        "f1": f1_score(y_true, y_pred, average="weighted"),
-    }
-```
-
-Constraints:
-
-- Use the same metric names for all evaluated models
-- Every metric value must be numeric and convertible to `float`
-- The returned dictionary is written directly to `results/model_metrics.csv`
-
-### 4. Customize the Streamlit application in `src/app.py`
-
-The file `src/app.py` is the fixed Streamlit entry point used by `scripts/main.py`.
-
-Keep this function name:
-
-```python
-def build_app() -> None:
-```
-
-You should update the placeholder app to present:
-
-- the business objective,
-- the dataset and key insights,
-- your visualizations,
-- model comparison results,
-- any prediction demo or interactive workflow relevant to your project.
-
-The template app already tries to display `results/model_metrics.csv` if it exists.
-
-## Recommended Student Workflow
-
-1. Fork this repository.
-2. Create and activate your virtual environment.
-3. Install dependencies:
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-The template also reads `project-repo/.env` with `python-dotenv`. By default it contains:
+For tests:
 
-```text
-PYTHONPATH=./src
+```bash
+pip install -r requirements-dev.txt
 ```
 
-This is used when `scripts/main.py` launches Streamlit so modules inside `src/` resolve as top-level imports such as `from config import ...` or `from app import build_app`.
+## Rebuild The Project
 
-4. Add your data files to `data/`.
-5. Train and save your models into `models/`.
-6. Update `src/config.py`.
-7. Implement `src/data.py`.
-8. Implement `src/metrics.py`.
-9. Customize `src/app.py`.
-10. Run the full project:
+After downloading the raw data, generate the processed dataset and EDA outputs:
+
+```bash
+python scripts/prepare_data.py
+```
+
+Train and save the models:
+
+```bash
+python scripts/train_models.py
+```
+
+Generate static plots:
+
+```bash
+python scripts/generate_plots.py
+```
+
+Run the template entry point, evaluate saved models, and launch Streamlit:
 
 ```bash
 python scripts/main.py
 ```
 
-## Output Produced by the Template
-
-After a successful run, you should have:
-
-- printed metrics in the terminal,
-- a CSV file at `results/model_metrics.csv`,
-- a Streamlit app running locally, by default at:
+The Streamlit dashboard opens at:
 
 ```text
 http://localhost:8501
 ```
 
-## Common Errors
+## Quality Checks
 
-### `NotImplementedError` from `data`
+Run the unit tests:
 
-You have not implemented `load_dataset_split()` yet.
+```bash
+python -m pytest
+```
 
-### `NotImplementedError` from `metrics`
+The tests cover weather cleaning, leakage-safe lag feature creation, and metric
+computation.
 
-You have not implemented `compute_metrics()` yet.
+## Main Files
 
-### `FileNotFoundError` for a model path
-
-One of the model files declared in `src/config.py` does not exist in `models/`.
-
-### Model has no `predict` method
-
-The object loaded from disk is not a trained model compatible with the template evaluation flow.
-
-### Streamlit starts but shows only the placeholder page
-
-You still need to customize `src/app.py` with your project content.
-
-## Notes
-
-- Keep `scripts/main.py` as the main orchestration entry point.
-- Keep the function names and signatures in `src/data.py`, `src/metrics.py`, and `src/app.py` unchanged.
-- Save your trained models before running the template.
-- Use the same evaluation logic for all registered models so the comparison remains fair.
+- `src/data.py`: loads the processed dataset and returns `X_train`, `X_test`,
+  `y_train`, `y_test`.
+- `src/features.py`: cleans weather data, merges tables, and builds lag/rolling
+  features.
+- `src/modeling.py`: defines the baseline, Poisson regression, and histogram
+  gradient boosting models.
+- `src/metrics.py`: computes regression metrics.
+- `src/app.py`: Streamlit dashboard.
+- `PROJECT_APPROACH.md`: concise explanation of the full project methodology.
+- `deliverables/assignment1.md`: dataset and project-topic deliverable.
