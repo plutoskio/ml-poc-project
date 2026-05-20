@@ -75,27 +75,39 @@ def _inject_theme() -> None:
         """
         <style>
         :root {
-            --bg: #0f1117;
-            --panel: #171b23;
-            --panel-soft: #1f2530;
-            --border: #313846;
-            --text: #f4f7fb;
-            --muted: #aeb7c6;
-            --accent: #7cc4ff;
+            --bg: #18202b;
+            --panel: #202938;
+            --panel-soft: #263244;
+            --border: #3b4657;
+            --text: #f8fafc;
+            --muted: #c5cfdd;
+            --accent: #8bc8ff;
             --accent-2: #4fb286;
             --accent-3: #f2b84b;
             --danger: #d96c75;
         }
 
+        header[data-testid="stHeader"],
+        div[data-testid="stToolbar"],
+        div[data-testid="stDecoration"],
+        div[data-testid="stStatusWidget"] {
+            display: none;
+        }
+
+        #MainMenu,
+        footer {
+            visibility: hidden;
+        }
+
         .stApp {
             background:
-                linear-gradient(180deg, #11151d 0%, #0f1117 34%, #101319 100%);
+                linear-gradient(180deg, #202938 0%, #18202b 40%, #171f2a 100%);
             color: var(--text);
         }
 
         .block-container {
             max-width: 1360px;
-            padding-top: 2rem;
+            padding-top: 1.25rem;
             padding-bottom: 4rem;
         }
 
@@ -107,10 +119,11 @@ def _inject_theme() -> None:
             border-radius: 7px;
             padding: 0.55rem 0.9rem;
             color: var(--muted);
+            font-weight: 650;
         }
 
         div[data-testid="stTabs"] button[aria-selected="true"] {
-            background: #202734;
+            background: #2a3648;
             color: var(--text);
             border: 1px solid var(--border);
         }
@@ -157,12 +170,12 @@ def _inject_theme() -> None:
         .hero {
             border: 1px solid var(--border);
             border-radius: 10px;
-            padding: 1.4rem 1.55rem;
+            padding: 1.25rem 1.45rem;
             margin-bottom: 1.25rem;
             background:
-                linear-gradient(135deg, rgba(124, 196, 255, 0.16), transparent 42%),
-                linear-gradient(180deg, #1a202b 0%, #141922 100%);
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+                linear-gradient(135deg, rgba(139, 200, 255, 0.18), transparent 44%),
+                linear-gradient(180deg, #253247 0%, #202938 100%);
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.16);
         }
 
         .hero-kicker {
@@ -176,7 +189,7 @@ def _inject_theme() -> None:
 
         .hero-title {
             color: var(--text);
-            font-size: clamp(2rem, 4vw, 3.15rem);
+            font-size: clamp(2rem, 3.6vw, 3rem);
             line-height: 1.05;
             font-weight: 800;
             margin-bottom: 0.6rem;
@@ -193,8 +206,10 @@ def _inject_theme() -> None:
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 1rem 1.05rem;
-            background: #171b23;
-            height: 100%;
+            background: var(--panel);
+            min-height: 132px;
+            height: auto;
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
         }
 
         .insight-label {
@@ -224,9 +239,14 @@ def _inject_theme() -> None:
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 1rem 1.05rem;
-            background: linear-gradient(180deg, #1a202b 0%, #151a22 100%);
-            min-height: 124px;
-            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+            background: linear-gradient(180deg, #243044 0%, #202938 100%);
+            min-height: 132px;
+            height: 132px;
+            margin-bottom: 1rem;
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
 
         .metric-label {
@@ -239,11 +259,16 @@ def _inject_theme() -> None:
 
         .metric-value {
             color: var(--text);
-            font-size: clamp(1.35rem, 2vw, 2.3rem);
+            font-size: clamp(1.45rem, 1.65vw, 2rem);
             font-weight: 800;
             line-height: 1.08;
             overflow-wrap: anywhere;
             word-break: normal;
+        }
+
+        .metric-value-long {
+            font-size: clamp(1.05rem, 1.15vw, 1.38rem);
+            line-height: 1.12;
         }
 
         .metric-delta {
@@ -319,11 +344,12 @@ def _insight_card(label: str, value: str, text: str) -> None:
 
 def _metric_card(label: str, value: str, delta: str | None = None) -> None:
     delta_html = f'<div class="metric-delta">{delta}</div>' if delta else ""
+    value_class = "metric-value metric-value-long" if len(str(value)) > 18 else "metric-value"
     st.markdown(
         f"""
         <div class="metric-card">
             <div class="metric-label">{label}</div>
-            <div class="metric-value">{value}</div>
+            <div class="{value_class}">{value}</div>
             {delta_html}
         </div>
         """,
@@ -346,24 +372,24 @@ def _style_chart(fig, height: int | None = None):
         colorway=CHART_COLORS,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#F4F7FB", "size": 13},
-        title={"font": {"size": 20, "color": "#F4F7FB"}},
+        font={"color": "#F8FAFC", "size": 13},
+        title={"font": {"size": 20, "color": "#F8FAFC"}},
         legend={
             "orientation": "h",
             "yanchor": "bottom",
             "y": 1.02,
             "xanchor": "right",
             "x": 1,
-            "font": {"color": "#F4F7FB", "size": 13},
-            "bgcolor": "rgba(15, 17, 23, 0.78)",
-            "bordercolor": "#313846",
+            "font": {"color": "#F8FAFC", "size": 13},
+            "bgcolor": "rgba(32, 41, 56, 0.86)",
+            "bordercolor": "#3B4657",
             "borderwidth": 1,
         },
         margin={"l": 20, "r": 20, "t": 70, "b": 40},
         height=height,
     )
-    fig.update_xaxes(gridcolor="#2C3442", zerolinecolor="#2C3442")
-    fig.update_yaxes(gridcolor="#2C3442", zerolinecolor="#2C3442")
+    fig.update_xaxes(gridcolor="#3B4657", zerolinecolor="#3B4657")
+    fig.update_yaxes(gridcolor="#3B4657", zerolinecolor="#3B4657")
     return fig
 
 
