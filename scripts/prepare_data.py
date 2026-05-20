@@ -42,6 +42,23 @@ def write_eda_outputs(df: pd.DataFrame) -> None:
     )
     monthly_sales.to_csv(RESULTS_DIR / "monthly_sales.csv", index=False)
 
+    monthly_seasonality = (
+        df.groupby("date", as_index=False)[TARGET_COLUMN]
+        .sum()
+        .assign(month_number=lambda frame: frame["date"].dt.month)
+        .groupby("month_number", as_index=False)
+        .agg(
+            average_daily_units=(TARGET_COLUMN, "mean"),
+            total_units=(TARGET_COLUMN, "sum"),
+            observed_days=("date", "nunique"),
+        )
+    )
+    monthly_seasonality["month_name"] = pd.to_datetime(
+        monthly_seasonality["month_number"],
+        format="%m",
+    ).dt.strftime("%b")
+    monthly_seasonality.to_csv(RESULTS_DIR / "monthly_seasonality.csv", index=False)
+
     top_items = (
         df.groupby("item_nbr", as_index=False)[TARGET_COLUMN]
         .sum()
@@ -99,4 +116,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

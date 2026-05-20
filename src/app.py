@@ -354,6 +354,10 @@ def _style_chart(fig, height: int | None = None):
             "y": 1.02,
             "xanchor": "right",
             "x": 1,
+            "font": {"color": "#F4F7FB", "size": 13},
+            "bgcolor": "rgba(15, 17, 23, 0.78)",
+            "bordercolor": "#313846",
+            "borderwidth": 1,
         },
         margin={"l": 20, "r": 20, "t": 70, "b": 40},
         height=height,
@@ -373,11 +377,12 @@ def _metric_delta(best_value: float, baseline_value: float, higher_is_better: bo
     return f"{relative_change:+.1%} vs lag baseline"
 
 
-def _load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def _load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     overview_path = Path(RESULTS_DIR) / "data_overview.csv"
     metrics_path = Path(RESULTS_DIR) / "model_metrics.csv"
     predictions_path = Path(RESULTS_DIR) / "best_model_test_predictions.csv"
     feature_importance_path = Path(RESULTS_DIR) / "feature_importance.csv"
+    monthly_seasonality_path = Path(RESULTS_DIR) / "monthly_seasonality.csv"
 
     missing = [
         path
@@ -386,6 +391,7 @@ def _load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFra
             metrics_path,
             predictions_path,
             feature_importance_path,
+            monthly_seasonality_path,
         ]
         if not path.exists()
     ]
@@ -402,7 +408,8 @@ def _load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFra
     metrics = _read_csv(metrics_path)
     predictions = _read_csv(predictions_path, parse_dates=["date"])
     importance = _read_csv(feature_importance_path)
-    return overview, metrics, predictions, importance
+    monthly_seasonality = _read_csv(monthly_seasonality_path)
+    return overview, metrics, predictions, importance, monthly_seasonality
 
 
 def _overview_values(overview: pd.DataFrame) -> dict[str, str]:
@@ -460,7 +467,11 @@ def _render_executive_summary(
         "store-product level using historical sales, calendar patterns, and local "
         "weather context. The strongest model is useful for planning at portfolio "
         "and product/store levels, while exact demand spikes remain the hardest "
-        "part of the problem."
+        "part of the problem. Because most planning inputs, such as calendar "
+        "features, recent sales history, and weather forecasts, can be available "
+        "several days before the sales day, this type of forecast could give "
+        "Walmart enough lead time to move additional stock from warehouses to "
+        "stores before demand materializes."
     )
 
     kpis = st.columns(5)
@@ -478,13 +489,6 @@ def _render_executive_summary(
         _metric_card("Demand-day MAE", f"{best['positive_sales_mae']:.2f}")
     with kpis[4]:
         _metric_card("Bias", _format_percent(bias))
-
-    _note(
-        "Main business takeaway: the model materially beats the lag baseline on "
-        f"RMSLE and explains about {best['r2']:.1%} of test-period variance. "
-        "It is best positioned as a decision-support tool for replenishment "
-        "planning, not as an automatic ordering system."
-    )
 
     insight_cols = st.columns(3)
     with insight_cols[0]:
@@ -533,13 +537,17 @@ def _render_executive_summary(
     )
 
 
-def _render_data_context(overview: pd.DataFrame, predictions: pd.DataFrame) -> None:
+def _render_data_context(
+    overview: pd.DataFrame,
+    predictions: pd.DataFrame,
+    monthly_seasonality: pd.DataFrame,
+) -> None:
     values = _overview_values(overview)
 
     st.subheader("Business Context And Data Reality")
     st.write(
-        "The operational question is simple: before a sales day begins, how many "
-        "units should a store expect to sell for each item? Better forecasts can "
+        "The operational question is simple: how many units should a store expect "
+        "to sell for each item? Better forecasts can "
         "reduce stockouts, reduce excess inventory, and help managers focus on the "
         "products and stores that actually drive volume."
     )
@@ -658,17 +666,35 @@ def _render_data_context(overview: pd.DataFrame, predictions: pd.DataFrame) -> N
         labels={"weekday": "Day of week", "actual_units": "Units"},
     )
 
+    monthly_summary = monthly_seasonality.sort_values("month_number").copy()
+    monthly_chart = px.bar(
+        monthly_summary,
+        x="month_name",
+        y="average_daily_units",
+        title="Seasonality: average daily demand by calendar month",
+        labels={"month_name": "Month", "average_daily_units": "Average daily units"},
+        hover_data={
+            "month_number": False,
+            "total_units": ":,.0f",
+            "observed_days": True,
+            "average_daily_units": ":,.0f",
+        },
+    )
+
     chart_cols = st.columns(2)
     with chart_cols[0]:
         st.plotly_chart(_style_chart(concentration_chart, height=440), width="stretch")
     with chart_cols[1]:
         st.plotly_chart(_style_chart(weekday_chart, height=440), width="stretch")
 
+    st.plotly_chart(_style_chart(monthly_chart, height=430), width="stretch")
+
     st.write(
         "Business interpretation: because demand is concentrated, managers should "
         "not treat every product and store equally. The highest-volume segments "
-        "deserve the most forecast monitoring, while day-of-week patterns help "
-        "translate forecasts into replenishment routines."
+        "deserve the most forecast monitoring, while day-of-week and monthly "
+        "patterns from the full history help translate forecasts into "
+        "replenishment routines."
     )
 
 
@@ -884,12 +910,16 @@ def _render_operational_demo(predictions: pd.DataFrame) -> None:
         "a store, and compare realized versus predicted demand for one week."
     )
 
+    default_item = 37
+    default_store = 17
+    default_week_start = pd.Timestamp("2014-07-28")
+
     item_volume = predictions.groupby("item_nbr")["actual_units"].sum().sort_values(ascending=False)
     item_options = item_volume.index.astype(int).tolist()
     selected_item = st.selectbox(
         "Product",
         item_options,
-        index=0,
+        index=item_options.index(default_item) if default_item in item_options else 0,
         help="Products are sorted by realized test-period unit volume.",
     )
 
@@ -903,7 +933,7 @@ def _render_operational_demo(predictions: pd.DataFrame) -> None:
     selected_store = st.selectbox(
         "Store",
         store_options,
-        index=0,
+        index=store_options.index(default_store) if selected_item == default_item else 0,
         help="Stores are sorted by realized test-period volume for the selected product.",
     )
 
@@ -921,6 +951,12 @@ def _render_operational_demo(predictions: pd.DataFrame) -> None:
     )
     week_options = sorted(item_store_predictions["week_start"].drop_duplicates())
     default_week = week_summary.index[0]
+    if (
+        selected_item == default_item
+        and selected_store == default_store
+        and default_week_start in week_options
+    ):
+        default_week = default_week_start
     selected_week = st.selectbox(
         "Week",
         week_options,
@@ -1040,7 +1076,7 @@ def _render_limitations() -> None:
 def build_app() -> None:
     """Build the Streamlit management dashboard for the ML proof of concept."""
     _render_header()
-    overview, metrics, predictions, importance = _load_inputs()
+    overview, metrics, predictions, importance, monthly_seasonality = _load_inputs()
 
     tabs = st.tabs(
         [
@@ -1056,7 +1092,7 @@ def build_app() -> None:
     with tabs[0]:
         _render_executive_summary(overview, metrics, predictions)
     with tabs[1]:
-        _render_data_context(overview, predictions)
+        _render_data_context(overview, predictions, monthly_seasonality)
     with tabs[2]:
         _render_methodology(metrics, importance)
     with tabs[3]:

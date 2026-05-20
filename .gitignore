@@ -15,3 +15,4 @@ data/processed/*
 
 .ipynb_checkpoints/
 teacher_instructions.md
+presentation_technical_notes.md
