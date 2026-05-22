@@ -59,6 +59,17 @@ src/                Project source code
 tests/              Unit tests
 ```
 
+## Assignment Deliverables
+
+- `deliverables/assignment1.md`: project topic and dataset description.
+- `deliverables/assignment2.md`: feature engineering and preprocessed dataset.
+- `deliverables/assignment3.md`: three model descriptions, saved models, and
+  model comparison.
+- `plots/`: required static plots for EDA, model comparison, and best-model
+  results.
+- `src/app.py`: completed Streamlit dashboard.
+- This README: project description and data download guide.
+
 ## How To Get The Data
 
 The data is not supposed to be stored in Git. Download it locally from Kaggle:
@@ -201,3 +212,6 @@ computation.
 - `src/app.py`: Streamlit dashboard.
 - `PROJECT_APPROACH.md`: concise explanation of the full project methodology.
 - `deliverables/assignment1.md`: dataset and project-topic deliverable.
+- `deliverables/assignment2.md`: feature engineering and preprocessed dataset
+  deliverable.
+- `deliverables/assignment3.md`: model description and comparison deliverable.
